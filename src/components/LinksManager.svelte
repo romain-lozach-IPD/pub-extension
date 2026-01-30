@@ -18,29 +18,56 @@
     return activeEnv?.url_api?.replace(/\/$/, '') || ''
   }
 
-  function resolveUrl(url) {
-    // Si l'URL commence par http, la retourner telle quelle
+  function normalizeUrl(url) {
+    // Si l'URL commence par http, la retourner telle quelle (URL absolue)
     if (url.match(/^https?:\/\//)) {
       return url
     }
     
-    // Sinon, ajouter l'URL de l'API active comme base
-    const apiBase = getApiBase()
-    if (apiBase) {
-      // Ajouter un / au début de l'URL si elle n'en a pas
-      const cleanUrl = url.startsWith('/') ? url : '/' + url
-      return apiBase + cleanUrl
+    // Si c'est un port (commence par :), le garder tel quel
+    if (url.match(/^:\d+/)) {
+      return url
     }
     
-    // Fallback sur https si pas d'environnement actif
-    return 'https://' + url
+    // Sinon, normaliser en chemin relatif (sans domaine)
+    // Enlever le / initial s'il existe pour stockage cohérent
+    return url.startsWith('/') ? url.substring(1) : url
+  }
+  
+  function displayUrl(url) {
+    // Si l'URL est absolue (http), l'afficher telle quelle
+    if (url.match(/^https?:\/\//)) {
+      return url
+    }
+    
+    // Si c'est un port (commence par :), l'ajouter au hostname
+    if (url.match(/^:\d+/)) {
+      const apiBase = getApiBase()
+      if (apiBase) {
+        // Extraire le protocol et hostname de l'API base
+        const match = apiBase.match(/^(https?:\/\/)([^\/]+)/)
+        if (match) {
+          return match[1] + match[2] + url
+        }
+      }
+      return 'http://localhost' + url
+    }
+    
+    // Sinon, ajouter le domaine de l'API active pour l'affichage
+    const apiBase = getApiBase()
+    if (apiBase) {
+      return apiBase + '/' + url
+    }
+    
+    // Fallback
+    return '/' + url
   }
 
   function saveLink() {
     if (!newLink.name || !newLink.url) return
     
-    // Résoudre l'URL (ajouter le domaine API si besoin)
-    newLink.url = resolveUrl(newLink.url)
+    // Normaliser l'URL (sans domaine, juste le chemin)
+    newLink.url = normalizeUrl(newLink.url)
     
     if (editingId) {
       links.update(editingId, newLink)
@@ -74,7 +101,8 @@
   }
 
   function openLink(url) {
-    chrome.tabs.create({ url })
+    const fullUrl = displayUrl(url)
+    chrome.tabs.create({ url: fullUrl })
   }
 </script>
 
@@ -103,11 +131,11 @@
         />
         <input 
           bind:value={newLink.url} 
-          placeholder="URL * (ex: /api/endpoint ou http://...)" 
+          placeholder="URL * (ex: api/endpoint ou http://...)" 
           class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f]" 
         />
         <p class="text-xs text-gray-500">
-          Sans http, l'URL sera préfixée avec l'API active : {getApiBase() || 'https://...'}
+          Les chemins relatifs seront affichés avec : {getApiBase() || 'https://...'} (modifiable dans l'environnement actif)
         </p>
         <input 
           bind:value={newLink.description} 
@@ -148,12 +176,12 @@
             <div class="flex-1 min-w-0">
               <button 
                 on:click={() => openLink(link.url)}
-                class="text-left group"
+                class="text-left group w-full max-w-full overflow-hidden"
               >
-                <div class="font-semibold text-[#1e3a5f] group-hover:underline truncate">
+                <div class="font-semibold text-[#1e3a5f] group-hover:underline truncate max-w-full">
                   {link.name}
                 </div>
-                <div class="text-sm text-gray-500 truncate">{link.url}</div>
+                <div class="text-sm text-gray-500 truncate max-w-full">{displayUrl(link.url)}</div>
               </button>
               {#if link.description}
                 <div class="text-sm text-gray-600 mt-1">{link.description}</div>

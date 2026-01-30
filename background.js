@@ -1,4 +1,6 @@
 // Service Worker - Background Script
+
+// Initialisation lors de l'installation
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Side Panel Extension installée')
   
@@ -16,6 +18,18 @@ chrome.runtime.onInstalled.addListener(() => {
       })
     }
   })
+})
+
+// Toggle le side panel au clic sur l'icône
+chrome.action.onClicked.addListener(async (tab) => {
+  // Récupère le panel actif pour cet onglet
+  try {
+    // Ouvre le side panel pour l'onglet actif
+    await chrome.sidePanel.open({ tabId: tab.id })
+    console.log('Side panel toggled for tab:', tab.id)
+  } catch (error) {
+    console.error('Error toggling side panel:', error)
+  }
 })
 
 // Prêt pour futures communications

@@ -11,6 +11,9 @@
   },
   "permissions": ["sidePanel", "storage", "scripting", "activeTab"],
   "host_permissions": ["http://localhost/*"],
+  "action": {
+    "default_title": "Ouvrir le panneau latéral"
+  },
   "side_panel": {
     "default_path": "src/index.html"
   },

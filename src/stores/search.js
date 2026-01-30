@@ -70,11 +70,19 @@ function createSearchStore() {
           }
         })
 
+        // Construire les headers avec Basic Auth si login/password présents
+        const headers = {
+          'Accept': 'application/json'
+        }
+        
+        if (activeEnv?.login && activeEnv?.password) {
+          const credentials = btoa(`${activeEnv.login}:${activeEnv.password}`)
+          headers['Authorization'] = `Basic ${credentials}`
+        }
+
         const response = await fetch(`${apiBase}/api/v1/extension/get-token?page=${page}`, {
           method: 'POST',
-          headers: {
-            'Accept': 'application/json'
-          },
+          headers: headers,
           body: formData
         })
 

@@ -2,11 +2,13 @@
   import { links } from '../stores/links.js'
   import { environments } from '../stores/environments.js'
   import { onMount } from 'svelte'
-  import { Pencil, Trash2 } from 'lucide-svelte'
+  import { Pencil, Trash2, GripVertical } from 'lucide-svelte'
 
   let newLink = { name: '', url: '', description: '' }
   let editingId = null
   let showForm = false
+  let draggedId = null
+  let dragOverId = null
 
   onMount(() => {
     links.load()
@@ -104,6 +106,63 @@
     const fullUrl = displayUrl(url)
     chrome.tabs.create({ url: fullUrl })
   }
+
+  function handleDragStart(e, id) {
+    draggedId = id
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', id.toString())
+    // Empêcher la propagation pour éviter les conflits
+    e.stopPropagation()
+  }
+
+  function handleDragOver(e, id) {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    if (id !== draggedId) {
+      dragOverId = id
+    }
+  }
+
+  function handleDragLeave(e) {
+    e.stopPropagation()
+    dragOverId = null
+  }
+
+  function handleDrop(e, targetId) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (draggedId && draggedId !== targetId) {
+      const linksArray = $links
+      const draggedIndex = linksArray.findIndex(l => l.id === draggedId)
+      const targetIndex = linksArray.findIndex(l => l.id === targetId)
+      if (draggedIndex !== -1 && targetIndex !== -1) {
+        links.reorder(draggedId, targetIndex)
+      }
+    }
+    draggedId = null
+    dragOverId = null
+  }
+
+  function handleDragEnd() {
+    draggedId = null
+    dragOverId = null
+  }
+
+  function handleHandleMouseDown(e) {
+    e.stopPropagation()
+  }
+
+  function handleHandleClick(e) {
+    e.stopPropagation()
+  }
+
+  function handleHandleKeydown(e) {
+    // Empêcher la propagation pour les touches espace et entrée
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.stopPropagation()
+    }
+  }
 </script>
 
 <div class="space-y-4 max-w-2xl bg-[#f5f5f5] min-h-screen p-4">
@@ -170,8 +229,34 @@
         Aucun lien enregistré
       </div>
     {:else}
-      {#each $links as link (link.id)}
-        <div class="bg-white border border-gray-200 rounded p-4">
+      {#each $links as link, index (link.id)}
+        <div
+          class="bg-white border border-gray-200 rounded p-4 relative group transition-all {dragOverId === link.id ? 'border-t-4 border-t-[#1e3a5f]' : ''} {draggedId === link.id ? 'opacity-50' : ''}"
+          draggable="false"
+          role="listitem"
+          on:dragover={(e) => handleDragOver(e, link.id)}
+          on:dragleave={handleDragLeave}
+          on:drop={(e) => handleDrop(e, link.id)}
+        >
+          <!-- Handle de drag - carré visible au hover -->
+          <div 
+            class="absolute -top-[7px] left-1/2 transform -translate-x-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-20"
+            draggable="true"
+            role="button"
+            tabindex="0"
+            aria-label="Déplacer le lien"
+            on:dragstart={(e) => handleDragStart(e, link.id)}
+            on:dragend={handleDragEnd}
+            on:mousedown={handleHandleMouseDown}
+            on:click={handleHandleClick}
+            on:keydown={handleHandleKeydown}
+            title="Déplacer (glisser-déposer)"
+          >
+            <div class="w-3.5 h-3.5 bg-[#1e3a5f] hover:bg-[#2a4a73] active:bg-[#1a2a4a] text-white rounded shadow-lg border-2 border-[#1e3a5f] hover:border-[#2a4a73] flex items-center justify-center transition-all">
+              <GripVertical size={14} />
+            </div>
+          </div>
+          
           <div class="flex justify-between items-start">
             <div class="flex-1 min-w-0">
               <button 

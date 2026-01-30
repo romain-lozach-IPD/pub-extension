@@ -37,6 +37,19 @@ function createLinksStore() {
         set('links', newLinks)
         return newLinks
       })
+    },
+    reorder: async (draggedId, targetIndex) => {
+      update(links => {
+        const draggedIndex = links.findIndex(l => l.id === draggedId)
+        if (draggedIndex === -1 || draggedIndex === targetIndex) return links
+        
+        const newLinks = [...links]
+        const [draggedItem] = newLinks.splice(draggedIndex, 1)
+        newLinks.splice(targetIndex, 0, draggedItem)
+        
+        set('links', newLinks)
+        return newLinks
+      })
     }
   }
 }

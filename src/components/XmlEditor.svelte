@@ -1,173 +1,271 @@
 <script>
-  import { settings } from '../stores/settings.js'
-  import { onMount } from 'svelte'
-  import { Download } from 'lucide-svelte'
+  import { settings } from "../stores/settings.js";
+  import { editorData } from "../stores/navigation.js";
+  import { environments } from "../stores/environments.js";
+  import { onMount } from "svelte";
+  import { ExternalLink, AlignLeft } from "lucide-svelte";
+  import CodeEditor from "./CodeEditor.svelte";
 
-  let xmlContent = ''
-  let fileName = 'connexion.xml'
-  let autoSave = true
+  let xmlToken = "";
+  let decodedXml = "";
+  let apiBase = "http://localhost";
+
+  // Subscribe to environments to get active environment
+  environments.subscribe((envs) => {
+    const activeEnv = envs.find((env) => env.isActive) || envs[0];
+    if (activeEnv?.url_api) {
+      apiBase = activeEnv.url_api.replace(/\/$/, ""); // Remove trailing slash
+    }
+  });
+
+  // Subscribe to editorData store
+  const unsubscribe = editorData.subscribe((data) => {
+    if (data.xmlToken) {
+      xmlToken = data.xmlToken;
+      decodedXml = data.decodedXml;
+    }
+  });
 
   onMount(() => {
-    settings.load()
+    settings.load();
+    environments.load();
     // Charger le contenu sauvegardé
-    chrome.storage.local.get(['xmlContent'], (result) => {
-      if (result.xmlContent) {
-        xmlContent = result.xmlContent
+    chrome.storage.local.get(["xmlContent", "xmlToken"], (result) => {
+      if (result.xmlToken && !xmlToken) {
+        xmlToken = result.xmlToken;
+        try {
+          // Just base64 decode, no formatting
+          decodedXml = atob(xmlToken);
+        } catch (e) {
+          decodedXml = "";
+        }
       }
-    })
-  })
+      if (result.xmlContent && !decodedXml) {
+        decodedXml = result.xmlContent;
+      }
+    });
+    return () => unsubscribe();
+  });
 
-  $: if (autoSave && xmlContent) {
-    chrome.storage.local.set({ xmlContent })
+  async function openConnexionPage() {
+    const tab = await chrome.tabs.create({ url: `${apiBase}/connexion` });
+
+    // Wait a bit for the page to load, then inject the token
+    setTimeout(async () => {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: (token) => {
+            const textarea = document.getElementById("xmltoken");
+            if (textarea) {
+              textarea.value = token;
+              // Trigger input event to notify any listeners
+              textarea.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+          },
+          args: [xmlToken],
+        });
+      } catch (err) {
+        console.error("Erreur lors de l'injection du token:", err);
+      }
+    }, 1000);
   }
 
-  function downloadXml() {
-    if (!xmlContent.trim()) return
-    
-    const blob = new Blob([xmlContent], { type: 'application/xml' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = fileName
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  function decodeToken() {
+    try {
+      // Just base64 decode, no formatting
+      decodedXml = atob(xmlToken);
+    } catch (e) {
+      alert("Erreur de décodage Base64 : " + e.message);
+    }
   }
 
-  function clearXml() {
-    if (confirm('Effacer tout le contenu ?')) {
-      xmlContent = ''
-      chrome.storage.local.remove(['xmlContent'])
+  function regenerateToken() {
+    try {
+      // Encode the XML to base64
+      xmlToken = btoa(decodedXml);
+    } catch (e) {
+      alert("Erreur d'encodage Base64 : " + e.message);
     }
   }
 
   function formatXml() {
+    if (!decodedXml.trim()) return;
+
     try {
-      const parser = new DOMParser()
-      const xmlDoc = parser.parseFromString(xmlContent, 'application/xml')
-      
-      // Vérifier les erreurs de parsing
-      const parserError = xmlDoc.querySelector('parsererror')
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(decodedXml, "application/xml");
+
+      // Check for parsing errors
+      const parserError = xmlDoc.querySelector("parsererror");
       if (parserError) {
-        alert('XML invalide : ' + parserError.textContent)
-        return
+        alert("XML invalide : impossible de formater");
+        return;
       }
-      
-      // Formatter
-      const serializer = new XMLSerializer()
-      const formatted = serializer.serializeToString(xmlDoc)
-      
-      // Ajouter indentation basique
-      xmlContent = formatWithIndentation(formatted)
+
+      // Format with indentation
+      const serializer = new XMLSerializer();
+      const formatted = serializer.serializeToString(xmlDoc);
+      decodedXml = formatWithIndentation(formatted);
     } catch (e) {
-      alert('Erreur de formatage XML')
+      alert("Erreur de formatage XML : " + e.message);
     }
   }
 
   function formatWithIndentation(xml) {
-    let formatted = ''
-    let indent = ''
-    const tab = '  '
-    
-    xml = xml.replace(/>\s*</g, '><')
-    
-    xml.split(/(<[^>]+>)/g).forEach((node) => {
-      if (node.match(/^<\//)) {
-        indent = indent.substring(tab.length)
-      }
-      
-      if (node.trim()) {
-        formatted += indent + node + '\n'
-      }
-      
-      if (node.match(/^<[^/][^>]*>/) && !node.match(/\/>/) && !node.match(/^<[^>]*>/)) {
-        indent += tab
-      }
-    })
-    
-    return formatted.trim()
-  }
+    let formatted = "";
+    let indent = "";
+    const tab = "  ";
 
-  function loadTemplate() {
-    xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
-<connection>
-  <name>Nom de la connexion</name>
-  <type>ssh</type>
-  <host>exemple.com</host>
-  <port>22</port>
-  <username>utilisateur</username>
-  <authentication>
-    <method>password</method>
-  </authentication>
-</connection>`
+    // Normalize whitespace between tags
+    xml = xml.replace(/>\s*</g, "><");
+
+    // Split by tags while keeping them
+    const tokens = xml.split(/(<[^>]+>)/g).filter((token) => token.length > 0);
+
+    for (let i = 0; i < tokens.length; i++) {
+      let node = tokens[i];
+
+      // Skip pure whitespace nodes
+      if (!node.trim()) continue;
+
+      // Handle text content between tags
+      if (!node.startsWith("<")) {
+        const text = node.trim();
+        if (text) {
+          formatted += indent + text + "\n";
+        }
+        continue;
+      }
+
+      // Handle closing tag - decrease indent before processing
+      if (node.match(/^<\//)) {
+        indent = indent.substring(tab.length);
+        formatted += indent + node + "\n";
+        continue;
+      }
+
+      // Handle self-closing tag
+      if (node.match(/\/>$/)) {
+        formatted += indent + node + "\n";
+        continue;
+      }
+
+      // Handle opening tag
+      if (node.match(/^<[^?!\/]/)) {
+        formatted += indent + node + "\n";
+        // Increase indent after opening tag (unless it's an empty element)
+        if (!node.match(/\/>/)) {
+          indent += tab;
+        }
+        continue;
+      }
+
+      // Handle XML declaration and comments
+      if (node.match(/^<\?/) || node.match(/^<!--/)) {
+        formatted += indent + node + "\n";
+        continue;
+      }
+
+      // Handle CDATA
+      if (node.match(/^<!\[/)) {
+        formatted += indent + node + "\n";
+        continue;
+      }
+
+      // Default: just add the node
+      formatted += indent + node + "\n";
+    }
+
+    return formatted.trim();
   }
 </script>
 
-<div class="space-y-4 max-w-2xl">
+<div class="space-y-4 max-w-2xl bg-[#f5f5f5] min-h-screen p-4">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-800">Éditeur XML</h1>
-    <div class="flex gap-2">
-      <button 
-        on:click={loadTemplate}
-        class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-      >
-        Template
-      </button>
-      <button 
-        on:click={formatXml}
-        class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-      >
-        Formater
-      </button>
-      <button 
-        on:click={clearXml}
-        class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-      >
-        Effacer
-      </button>
+  </div>
+
+  <!-- XML Décode avec coloration syntaxique -->
+  <div class="bg-white border border-gray-200 rounded overflow-hidden">
+    <div
+      class="bg-gray-50 border-b border-gray-200 px-4 py-2 flex justify-between items-center"
+    >
+      <span class="text-sm font-medium text-gray-600">XML Décode</span>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-gray-400">{decodedXml.length} caractères</span
+        >
+        <button
+          on:click={formatXml}
+          disabled={!decodedXml.trim()}
+          title="Formater le XML"
+          class="text-xs bg-white border border-[#1e3a5f] text-[#1e3a5f] hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 px-2 py-1 rounded flex items-center gap-1"
+        >
+          <AlignLeft size={12} />
+          Formater
+        </button>
+      </div>
+    </div>
+    <div class="h-80">
+      <CodeEditor
+        bind:value={decodedXml}
+        placeholder="Le XML décodé apparaîtra ici..."
+        spellcheck={false}
+        className="xml-editor"
+      />
     </div>
   </div>
 
-  <!-- Options -->
-  <div class="bg-white p-3 rounded-lg shadow border border-gray-200">
-    <div class="flex items-center gap-4">
-      <label class="flex items-center gap-2 text-sm">
-        <span>Nom du fichier:</span>
-        <input 
-          type="text" 
-          bind:value={fileName}
-          class="px-2 py-1 border rounded text-sm w-40"
-        />
-      </label>
-      <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input type="checkbox" bind:checked={autoSave} />
-        <span>Auto-sauvegarde</span>
-      </label>
-    </div>
-  </div>
-
-  <!-- Éditeur -->
-  <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-    <div class="bg-gray-100 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
-      <span class="text-sm font-medium text-gray-600">Contenu XML</span>
-      <span class="text-xs text-gray-400">{xmlContent.length} caractères</span>
+  <!-- XML Token -->
+  <div class="bg-white border border-gray-200 rounded overflow-hidden">
+    <div
+      class="bg-gray-50 border-b border-gray-200 px-4 py-2 flex justify-between items-center"
+    >
+      <span class="text-sm font-medium text-gray-600">XML Token (Base64)</span>
+      <div class="flex gap-2 items-center">
+        <span class="text-xs text-gray-400">{xmlToken.length} caractères</span>
+        <button
+          on:click={decodeToken}
+          disabled={!xmlToken}
+          class="text-xs bg-[#1e3a5f] hover:bg-[#2a4a73] disabled:bg-gray-300 text-white px-2 py-1 rounded"
+        >
+          Décoder
+        </button>
+        <button
+          on:click={regenerateToken}
+          disabled={!decodedXml.trim()}
+          class="text-xs bg-white border border-[#1e3a5f] text-[#1e3a5f] hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 px-2 py-1 rounded"
+        >
+          Régénérer
+        </button>
+      </div>
     </div>
     <textarea
-      bind:value={xmlContent}
-      placeholder="Rédigez votre XML ici..."
-      class="w-full h-96 p-4 font-mono text-sm resize-none focus:outline-none"
+      bind:value={xmlToken}
+      placeholder="Collez votre token XML (Base64) ici..."
+      class="token-textarea w-full h-28 p-3 font-mono text-xs resize-none focus:outline-none border-0 bg-gray-50"
       spellcheck="false"
     ></textarea>
   </div>
 
-  <!-- Bouton téléchargement -->
-  <button 
-    on:click={downloadXml}
-    disabled={!xmlContent.trim()}
-    class="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+  <!-- Lien vers la page de connexion -->
+  <button
+    on:click={openConnexionPage}
+    class="w-full bg-[#1e3a5f] hover:bg-[#2a4a73] text-white py-3 rounded font-medium transition-colors flex items-center justify-center gap-2"
   >
-    <Download size={20} />
-    Télécharger le fichier XML
+    <ExternalLink size={20} />
+    Ouvrir la page de connexion
   </button>
 </div>
+
+<style>
+  .token-textarea {
+    font-family: "Menlo", "Monaco", "Courier New", monospace;
+    line-height: 1.5;
+    color: #4a5568;
+  }
+
+  :global(.xml-editor) {
+    background: #fafafa;
+  }
+</style>

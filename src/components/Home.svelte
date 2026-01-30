@@ -1,16 +1,28 @@
 <script>
   import { filters, searchStore, paginationInfo } from '../stores/search.js'
   import { favorites } from '../stores/favorites.js'
+  import { openEditorWithData } from '../stores/navigation.js'
+  import { environments } from '../stores/environments.js'
   import { onMount } from 'svelte'
-  import { RotateCcw, Loader, Search, AlertTriangle, Star, ExternalLink } from 'lucide-svelte'
+  import { RotateCcw, Loader, Search, AlertTriangle, Star, ExternalLink, Edit } from 'lucide-svelte'
 
   let showFilters = true
   let currentPage = 1
   let hasSearched = false
+  let frontUrl = 'http://localhost'
+
+  // Subscribe to environments to get active environment
+  environments.subscribe(envs => {
+    const activeEnv = envs.find(env => env.isActive) || envs[0]
+    if (activeEnv?.url_front) {
+      frontUrl = activeEnv.url_front.replace(/\/$/, '') // Remove trailing slash
+    }
+  })
 
   onMount(() => {
-    // Charger les favoris au démarrage
+    // Charger les favoris et environnements au démarrage
     favorites.load()
+    environments.load()
   })
 
   async function handleSearch() {
@@ -47,8 +59,14 @@
   }
 
   function openConnection(uuid) {
-    const url = `http://localhost:3000?key=${uuid}`
+    const url = `${frontUrl}?key=${uuid}`
     chrome.tabs.create({ url })
+  }
+
+  function openXmlEditor(result) {
+    if (result.xml_token) {
+      openEditorWithData(result.xml_token)
+    }
   }
 
   function toggleFavorite(result) {
@@ -61,12 +79,12 @@
   }
 </script>
 
-<div class="space-y-4 max-w-2xl">
+<div class="space-y-4 max-w-2xl bg-[#f5f5f5] p-4">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-800">Recherche Tokens</h1>
     <button 
       on:click={() => showFilters = !showFilters}
-      class="text-sm text-blue-600 hover:text-blue-800"
+      class="text-sm text-[#1e3a5f] hover:text-[#2a4a73]"
     >
       {showFilters ? 'Masquer filtres' : 'Afficher filtres'}
     </button>
@@ -74,52 +92,56 @@
 
   <!-- Formulaire de filtres -->
   {#if showFilters}
-    <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+    <div class="bg-white p-4 rounded border border-gray-200">
       <h3 class="font-semibold text-gray-700 mb-3">Filtres de recherche</h3>
       
       <div class="grid grid-cols-2 gap-3 mb-3">
         <!-- IDs (type number) -->
         <div>
-          <label class="block text-xs text-gray-600 mb-1">ID</label>
+          <label for="filter-id" class="block text-xs text-gray-600 mb-1">ID</label>
           <input 
+            id="filter-id"
             type="number" 
             bind:value={$filters.id}
             on:keypress={handleKeyPress}
             placeholder="ID"
-            class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
           />
         </div>
         
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Abonné ID</label>
+          <label for="filter-abonne" class="block text-xs text-gray-600 mb-1">Abonné ID</label>
           <input 
+            id="filter-abonne"
             type="number" 
             bind:value={$filters.abonne_id}
             on:keypress={handleKeyPress}
             placeholder="Abonné ID"
-            class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
           />
         </div>
         
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Avis ID</label>
+          <label for="filter-avis" class="block text-xs text-gray-600 mb-1">Avis ID</label>
           <input 
+            id="filter-avis"
             type="number" 
             bind:value={$filters.avis_id}
             on:keypress={handleKeyPress}
             placeholder="Avis ID"
-            class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
           />
         </div>
         
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Consultation ID</label>
+          <label for="filter-consultation" class="block text-xs text-gray-600 mb-1">Consultation ID</label>
           <input 
+            id="filter-consultation"
             type="number" 
             bind:value={$filters.consultation_id}
             on:keypress={handleKeyPress}
             placeholder="Consultation ID"
-            class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
           />
         </div>
       </div>
@@ -127,43 +149,46 @@
       <div class="grid grid-cols-2 gap-3 mb-4">
         <!-- Strings (type text) -->
         <div>
-          <label class="block text-xs text-gray-600 mb-1">HCUB ID</label>
+          <label for="filter-hcub" class="block text-xs text-gray-600 mb-1">HCUB ID</label>
           <input 
+            id="filter-hcub"
             type="text" 
             bind:value={$filters.hcub_id}
             on:keypress={handleKeyPress}
             placeholder="HCUB ID"
-            class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
           />
         </div>
         
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Réf. Technique</label>
+          <label for="filter-ref" class="block text-xs text-gray-600 mb-1">Réf. Technique</label>
           <input 
+            id="filter-ref"
             type="text" 
             bind:value={$filters.reference_technique}
             on:keypress={handleKeyPress}
             placeholder="Référence technique"
-            class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
           />
         </div>
       </div>
 
       <div class="mb-4">
-        <label class="block text-xs text-gray-600 mb-1">Login</label>
+        <label for="filter-login" class="block text-xs text-gray-600 mb-1">Login</label>
         <input 
+          id="filter-login"
           type="text" 
           bind:value={$filters.login}
           on:keypress={handleKeyPress}
           placeholder="Login"
-          class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+          class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
         />
       </div>
 
       <div class="flex gap-2">
         <button 
           on:click={resetFilters}
-          class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+          class="flex-1 bg-white border border-[#1e3a5f] text-[#1e3a5f] py-2 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2 hover:bg-gray-50"
         >
           <RotateCcw size={16} />
           Réinitialiser
@@ -171,7 +196,7 @@
         <button 
           on:click={handleSearch}
           disabled={$searchStore.loading}
-          class="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+          class="flex-1 bg-[#1e3a5f] hover:bg-[#2a4a73] disabled:bg-blue-300 text-white py-2 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
         >
           {#if $searchStore.loading}
             <Loader size={16} class="animate-spin" />
@@ -187,7 +212,7 @@
 
   <!-- Message d'erreur -->
   {#if $searchStore.error}
-    <div class="bg-red-50 border border-red-200 p-4 rounded-lg">
+    <div class="bg-red-50 border border-red-200 p-4 rounded">
       <div class="flex items-start gap-2">
         <AlertTriangle size={16} class="text-red-500" />
         <div class="flex-1">
@@ -206,7 +231,7 @@
 
   <!-- Résultats -->
   {#if $searchStore.results.length > 0}
-    <div class="bg-white rounded-lg shadow border border-gray-200">
+    <div class="bg-white rounded border border-gray-200">
       <div class="p-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
         <span class="font-medium text-gray-700">
           {$paginationInfo?.total || $searchStore.results.length} résultat{$paginationInfo?.total > 1 ? 's' : ''}
@@ -224,17 +249,17 @@
             <div class="flex justify-between items-start mb-3">
               <div class="flex flex-wrap items-center gap-2">
                 {#if result.abonne?.id || result.id}
-                  <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
+                  <span class="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200 font-medium">
                     #{result.abonne?.id || result.id}
                   </span>
                 {/if}
                 {#if result.abonne?.hcub_id || result.hcub?.id || result.hcub_id}
-                  <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded font-medium">
+                  <span class="text-xs px-2 py-0.5 bg-green-50 text-green-700 rounded border border-green-200 font-medium">
                     {result.abonne?.hcub_id || result.hcub?.id || result.hcub_id}
                   </span>
                 {/if}
                 {#if result.consultation_id}
-                  <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded font-medium">
+                  <span class="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 rounded border border-purple-200 font-medium">
                     Consultation: {result.consultation_id}
                   </span>
                 {/if}
@@ -264,10 +289,19 @@
               {#if result.uuid}
                 <button 
                   on:click={() => openConnection(result.uuid)}
-                  class="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
+                  title="Connexion"
+                  class="bg-[#1e3a5f] hover:bg-[#2a4a73] text-white p-2 rounded transition-colors flex-shrink-0"
                 >
-                  <ExternalLink size={16} />
-                  Connexion
+                  <ExternalLink size={18} />
+                </button>
+              {/if}
+              {#if result.xml_token}
+                <button 
+                  on:click={() => openXmlEditor(result)}
+                  title="Édition"
+                  class="bg-white border border-[#1e3a5f] text-[#1e3a5f] hover:bg-gray-50 p-2 rounded transition-colors flex-shrink-0"
+                >
+                  <Edit size={18} />
                 </button>
               {/if}
             </div>
@@ -283,7 +317,7 @@
             <button 
               on:click={() => changePage(currentPage - 1)}
               disabled={!$paginationInfo.hasPrevious || $searchStore.loading}
-              class="px-4 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              class="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               &laquo; Précédent
             </button>
@@ -297,7 +331,7 @@
             <button 
               on:click={() => changePage(currentPage + 1)}
               disabled={!$paginationInfo.hasNext || $searchStore.loading}
-              class="px-4 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              class="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               Suivant &raquo;
             </button>
@@ -310,7 +344,7 @@
       {/if}
     </div>
   {:else if !$searchStore.loading && !$searchStore.error && $searchStore.meta !== null}
-    <div class="text-center py-8 text-gray-500 bg-white rounded-lg shadow border border-gray-200">
+    <div class="text-center py-8 text-gray-500 bg-white rounded border border-gray-200">
       <div class="flex justify-center mb-2">
         <Search size={40} class="text-gray-400" />
       </div>
@@ -321,8 +355,8 @@
 
   <!-- Favoris (affiché par défaut si pas de recherche) -->
   {#if !hasSearched && $favorites.length > 0}
-    <div class="bg-white rounded-lg shadow border border-gray-200">
-      <div class="p-3 border-b border-gray-200 bg-yellow-50 flex justify-between items-center">
+    <div class="bg-white rounded border border-gray-200">
+      <div class="p-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
         <span class="font-medium text-gray-700 flex items-center gap-2">
           <Star size={16} class="text-yellow-500" />
           Mes favoris ({$favorites.length})
@@ -335,17 +369,17 @@
             <div class="flex justify-between items-start mb-3">
               <div class="flex flex-wrap items-center gap-2">
                 {#if favorite.abonne?.id || favorite.id}
-                  <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
+                  <span class="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200 font-medium">
                     #{favorite.abonne?.id || favorite.id}
                   </span>
                 {/if}
                 {#if favorite.abonne?.hcub_id || favorite.hcub?.id || favorite.hcub_id}
-                  <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded font-medium">
+                  <span class="text-xs px-2 py-0.5 bg-green-50 text-green-700 rounded border border-green-200 font-medium">
                     {favorite.abonne?.hcub_id || favorite.hcub?.id || favorite.hcub_id}
                   </span>
                 {/if}
                 {#if favorite.consultation_id}
-                  <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded font-medium">
+                  <span class="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 rounded border border-purple-200 font-medium">
                     Consultation: {favorite.consultation_id}
                   </span>
                 {/if}
@@ -375,10 +409,19 @@
               {#if favorite.uuid}
                 <button 
                   on:click={() => openConnection(favorite.uuid)}
-                  class="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
+                  title="Connexion"
+                  class="bg-[#1e3a5f] hover:bg-[#2a4a73] text-white p-2 rounded transition-colors flex-shrink-0"
                 >
-                  <ExternalLink size={16} />
-                  Connexion
+                  <ExternalLink size={18} />
+                </button>
+              {/if}
+              {#if favorite.xml_token}
+                <button 
+                  on:click={() => openXmlEditor(favorite)}
+                  title="Édition"
+                  class="bg-white border border-[#1e3a5f] text-[#1e3a5f] hover:bg-gray-50 p-2 rounded transition-colors flex-shrink-0"
+                >
+                  <Edit size={18} />
                 </button>
               {/if}
             </div>
@@ -387,7 +430,7 @@
       </div>
     </div>
   {:else if !hasSearched && $favorites.length === 0}
-    <div class="text-center py-8 text-gray-500 bg-white rounded-lg shadow border border-gray-200">
+    <div class="text-center py-8 text-gray-500 bg-white rounded border border-gray-200">
       <div class="flex justify-center mb-2">
         <Star size={40} class="text-gray-300" />
       </div>

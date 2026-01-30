@@ -9,10 +9,13 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: 'src/index.html'
+        main: 'src/index.html',
+        background: 'background.js'
       },
       output: {
-        entryFileNames: 'assets/[name].js',
+        entryFileNames: (chunkInfo) => {
+          return chunkInfo.name === 'background' ? '[name].js' : 'assets/[name].js'
+        },
         chunkFileNames: 'assets/[name].js',
         assetFileNames: (assetInfo) => {
           const info = assetInfo.name.split('.')

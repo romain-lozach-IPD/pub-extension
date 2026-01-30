@@ -1,4 +1,5 @@
 import { writable, derived } from 'svelte/store'
+import { environments } from './environments.js'
 
 // Store pour les filtres
 function createFiltersStore() {
@@ -52,6 +53,10 @@ function createSearchStore() {
       update(s => ({ ...s, loading: true, error: null }))
       
       try {
+        // Récupérer l'environnement actif
+        const activeEnv = environments.getActive()
+        const apiBase = activeEnv?.url_api || 'http://localhost'
+        
         // Construction du FormData avec syntaxe Spatie Query Builder
         const formData = new FormData()
         Object.entries(filtersData).forEach(([key, value]) => {
@@ -65,7 +70,7 @@ function createSearchStore() {
           }
         })
 
-        const response = await fetch(`http://localhost/api/v1/extension/get-token?page=${page}`, {
+        const response = await fetch(`${apiBase}/api/v1/extension/get-token?page=${page}`, {
           method: 'POST',
           headers: {
             'Accept': 'application/json'

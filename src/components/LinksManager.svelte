@@ -2,7 +2,7 @@
   import { links } from '../stores/links.js'
   import { environments } from '../stores/environments.js'
   import { onMount } from 'svelte'
-  import { Pencil, Trash2, GripVertical } from 'lucide-svelte'
+  import { Pencil, Trash2, GripVertical, Plus } from 'lucide-svelte'
 
   let newLink = { name: '', url: '', description: '' }
   let editingId = null
@@ -168,11 +168,12 @@
 <div class="space-y-4 max-w-2xl bg-[#f5f5f5] min-h-screen p-4">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-800">Liens utiles</h1>
-    <button 
+    <button
       on:click={() => showForm = !showForm}
-      class="bg-[#1e3a5f] hover:bg-[#2a4a73] text-white px-4 py-2 rounded font-medium transition-colors"
+      class="bg-[#1e3a5f] hover:bg-[#2a4a73] text-white px-4 py-2 rounded font-medium transition-colors flex items-center gap-2"
     >
-      {showForm ? 'Annuler' : '+ Ajouter'}
+      <Plus size={18} />
+      {showForm ? 'Annuler' : 'Nouveau lien'}
     </button>
   </div>
 

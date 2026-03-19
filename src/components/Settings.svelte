@@ -1,6 +1,7 @@
 <script>
   import { connections } from '../stores/connections.js'
   import { links } from '../stores/links.js'
+  import { tasks } from '../stores/tasks.js'
   import { environments } from '../stores/environments.js'
   import { favorites } from '../stores/favorites.js'
   import { onMount } from 'svelte'
@@ -39,7 +40,8 @@
       exportedAt: new Date().toISOString(),
       favorites: result.favorites || [],
       environments: safeEnvironments,
-      links: result.links || []
+      links: result.links || [],
+      tasks: result.tasks || []
     }
     
     // Créer et télécharger le fichier
@@ -84,6 +86,10 @@
       if (data.links && Array.isArray(data.links)) {
         importData.links = data.links
       }
+
+      if (data.tasks && Array.isArray(data.tasks)) {
+        importData.tasks = data.tasks
+      }
       
       // Sauvegarder dans le storage
       await chrome.storage.local.set(importData)
@@ -92,6 +98,7 @@
       await favorites.load()
       await environments.load()
       await links.load()
+      await tasks.load()
       
       alert('Données importées avec succès !')
     } catch (e) {
@@ -113,6 +120,7 @@
       connections.load()
       links.load()
       environments.load()
+      tasks.load()
       showResetConfirm = false
       alert('Toutes les données ont été effacées')
     })

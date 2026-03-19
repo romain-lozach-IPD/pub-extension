@@ -1,0 +1,296 @@
+<script>
+  import { links } from '../stores/links.js'
+  import { environments } from '../stores/environments.js'
+  import { onMount } from 'svelte'
+  import { Pencil, Trash2, GripVertical } from 'lucide-svelte'
+
+  let newLink = { name: '', url: '', description: '' }
+  let editingId = null
+  let showForm = false
+  let draggedId = null
+  let dragOverId = null
+
+  onMount(() => {
+    links.load()
+    environments.load()
+  })
+
+  function getApiBase() {
+    const activeEnv = environments.getActive()
+    return activeEnv?.url_api?.replace(/\/$/, '') || ''
+  }
+
+  function normalizeUrl(url) {
+    // Si l'URL commence par http, la retourner telle quelle (URL absolue)
+    if (url.match(/^https?:\/\//)) {
+      return url
+    }
+    
+    // Si c'est un port (commence par :), le garder tel quel
+    if (url.match(/^:\d+/)) {
+      return url
+    }
+    
+    // Sinon, normaliser en chemin relatif (sans domaine)
+    // Enlever le / initial s'il existe pour stockage cohérent
+    return url.startsWith('/') ? url.substring(1) : url
+  }
+  
+  function displayUrl(url) {
+    // Si l'URL est absolue (http), l'afficher telle quelle
+    if (url.match(/^https?:\/\//)) {
+      return url
+    }
+    
+    // Si c'est un port (commence par :), l'ajouter au hostname
+    if (url.match(/^:\d+/)) {
+      const apiBase = getApiBase()
+      if (apiBase) {
+        // Extraire le protocol et hostname de l'API base
+        const match = apiBase.match(/^(https?:\/\/)([^\/]+)/)
+        if (match) {
+          return match[1] + match[2] + url
+        }
+      }
+      return 'http://localhost' + url
+    }
+    
+    // Sinon, ajouter le domaine de l'API active pour l'affichage
+    const apiBase = getApiBase()
+    if (apiBase) {
+      return apiBase + '/' + url
+    }
+    
+    // Fallback
+    return '/' + url
+  }
+
+  function saveLink() {
+    if (!newLink.name || !newLink.url) return
+    
+    // Normaliser l'URL (sans domaine, juste le chemin)
+    newLink.url = normalizeUrl(newLink.url)
+    
+    if (editingId) {
+      links.update(editingId, newLink)
+    } else {
+      links.add(newLink)
+    }
+    
+    resetForm()
+  }
+
+  function edit(link) {
+    newLink = { 
+      name: link.name, 
+      url: link.url, 
+      description: link.description || '' 
+    }
+    editingId = link.id
+    showForm = true
+  }
+
+  function remove(id) {
+    if (confirm('Supprimer ce lien ?')) {
+      links.remove(id)
+    }
+  }
+
+  function resetForm() {
+    newLink = { name: '', url: '', description: '' }
+    editingId = null
+    showForm = false
+  }
+
+  function openLink(url) {
+    const fullUrl = displayUrl(url)
+    chrome.tabs.create({ url: fullUrl })
+  }
+
+  function handleDragStart(e, id) {
+    draggedId = id
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', id.toString())
+    // Empêcher la propagation pour éviter les conflits
+    e.stopPropagation()
+  }
+
+  function handleDragOver(e, id) {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    if (id !== draggedId) {
+      dragOverId = id
+    }
+  }
+
+  function handleDragLeave(e) {
+    e.stopPropagation()
+    dragOverId = null
+  }
+
+  function handleDrop(e, targetId) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (draggedId && draggedId !== targetId) {
+      const linksArray = $links
+      const draggedIndex = linksArray.findIndex(l => l.id === draggedId)
+      const targetIndex = linksArray.findIndex(l => l.id === targetId)
+      if (draggedIndex !== -1 && targetIndex !== -1) {
+        links.reorder(draggedId, targetIndex)
+      }
+    }
+    draggedId = null
+    dragOverId = null
+  }
+
+  function handleDragEnd() {
+    draggedId = null
+    dragOverId = null
+  }
+
+  function handleHandleMouseDown(e) {
+    e.stopPropagation()
+  }
+
+  function handleHandleClick(e) {
+    e.stopPropagation()
+  }
+
+  function handleHandleKeydown(e) {
+    // Empêcher la propagation pour les touches espace et entrée
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.stopPropagation()
+    }
+  }
+</script>
+
+<div class="space-y-4 max-w-2xl bg-[#f5f5f5] min-h-screen p-4">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-800">Liens utiles</h1>
+    <button 
+      on:click={() => showForm = !showForm}
+      class="bg-[#1e3a5f] hover:bg-[#2a4a73] text-white px-4 py-2 rounded font-medium transition-colors"
+    >
+      {showForm ? 'Annuler' : '+ Ajouter'}
+    </button>
+  </div>
+
+  <!-- Formulaire -->
+  {#if showForm}
+    <div class="bg-white border border-gray-200 rounded p-4">
+      <h3 class="font-semibold text-gray-700 mb-3 bg-gray-50 border-b border-gray-200 px-3 py-2 -mx-4 -mt-4 mb-3">
+        {editingId ? 'Modifier le lien' : 'Nouveau lien'}
+      </h3>
+      <div class="space-y-3">
+        <input 
+          bind:value={newLink.name} 
+          placeholder="Nom du lien *" 
+          class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f]" 
+        />
+        <input 
+          bind:value={newLink.url} 
+          placeholder="URL * (ex: api/endpoint ou http://...)" 
+          class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f]" 
+        />
+        <p class="text-xs text-gray-500">
+          Les chemins relatifs seront affichés avec : {getApiBase() || 'https://...'} (modifiable dans l'environnement actif)
+        </p>
+        <input 
+          bind:value={newLink.description} 
+          placeholder="Description (optionnel)" 
+          class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f]" 
+        />
+        <div class="flex gap-2">
+          <button 
+            on:click={saveLink}
+            disabled={!newLink.name || !newLink.url}
+            class="flex-1 bg-[#1e3a5f] hover:bg-[#2a4a73] disabled:bg-gray-300 text-white py-2 rounded font-medium transition-colors"
+          >
+            {editingId ? 'Modifier' : 'Ajouter'}
+          </button>
+          {#if editingId}
+            <button 
+              on:click={resetForm}
+              class="px-4 py-2 bg-white border border-[#1e3a5f] text-[#1e3a5f] rounded transition-colors"
+            >
+              Annuler
+            </button>
+          {/if}
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Liste des liens -->
+  <div class="space-y-2">
+    {#if $links.length === 0}
+      <div class="text-center py-8 text-gray-500">
+        Aucun lien enregistré
+      </div>
+    {:else}
+      {#each $links as link, index (link.id)}
+        <div
+          class="bg-white border border-gray-200 rounded p-4 relative group transition-all {dragOverId === link.id ? 'border-t-4 border-t-[#1e3a5f]' : ''} {draggedId === link.id ? 'opacity-50' : ''}"
+          draggable="false"
+          role="listitem"
+          on:dragover={(e) => handleDragOver(e, link.id)}
+          on:dragleave={handleDragLeave}
+          on:drop={(e) => handleDrop(e, link.id)}
+        >
+          <!-- Handle de drag - carré visible au hover -->
+          <div 
+            class="absolute -top-[7px] left-1/2 transform -translate-x-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-20"
+            draggable="true"
+            role="button"
+            tabindex="0"
+            aria-label="Déplacer le lien"
+            on:dragstart={(e) => handleDragStart(e, link.id)}
+            on:dragend={handleDragEnd}
+            on:mousedown={handleHandleMouseDown}
+            on:click={handleHandleClick}
+            on:keydown={handleHandleKeydown}
+            title="Déplacer (glisser-déposer)"
+          >
+            <div class="w-3.5 h-3.5 bg-[#1e3a5f] hover:bg-[#2a4a73] active:bg-[#1a2a4a] text-white rounded shadow-lg border-2 border-[#1e3a5f] hover:border-[#2a4a73] flex items-center justify-center transition-all">
+              <GripVertical size={14} />
+            </div>
+          </div>
+          
+          <div class="flex justify-between items-start">
+            <div class="flex-1 min-w-0">
+              <button 
+                on:click={() => openLink(link.url)}
+                class="text-left group w-full max-w-full overflow-hidden"
+              >
+                <div class="font-semibold text-[#1e3a5f] group-hover:underline truncate max-w-full">
+                  {link.name}
+                </div>
+                <div class="text-sm text-gray-500 truncate max-w-full">{displayUrl(link.url)}</div>
+              </button>
+              {#if link.description}
+                <div class="text-sm text-gray-600 mt-1">{link.description}</div>
+              {/if}
+            </div>
+            <div class="flex gap-1 ml-2">
+              <button
+                on:click={() => edit(link)}
+                class="p-2 text-gray-600 hover:text-[#1e3a5f] rounded transition-colors"
+                title="Modifier"
+              >
+                <Pencil size={18} />
+              </button>
+              <button
+                on:click={() => remove(link.id)}
+                class="p-2 text-red-600 hover:text-red-800 rounded transition-colors"
+                title="Supprimer"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      {/each}
+    {/if}
+  </div>
+</div>

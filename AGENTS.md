@@ -233,6 +233,12 @@ onMount(() => { ... })
 - The `type: "module"` in package.json enables ES modules
 - Uses `vitePreprocess()` for Svelte preprocessing
 
+## Git / Commit Policy
+
+- **NEVER** commit or push changes without explicit user request
+- Always wait for user to ask "commit" or "push"
+- Prepare commits with `git add` and `git commit -m "message"` but do not push unless asked
+
 ## Adding New Components
 
 1. Create `src/components/NewComponent.svelte`

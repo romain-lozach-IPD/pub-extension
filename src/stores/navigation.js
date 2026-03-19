@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store'
-import { Home, FileText, Link, CheckSquare, Settings } from 'lucide-svelte'
+import { Home, FileText, Link, CheckSquare, Settings, BookOpen } from 'lucide-svelte'
 
 export const currentPage = writable('home')
 export const editorData = writable({ xmlToken: '', decodedXml: '' })
@@ -9,6 +9,7 @@ export const pages = [
   { id: 'xml', label: 'XML', icon: FileText },
   { id: 'links', label: 'Liens', icon: Link },
   { id: 'tasks', label: 'Tâches', icon: CheckSquare },
+  { id: 'apidoc', label: 'API Doc', icon: BookOpen },
   { id: 'settings', label: 'Paramètres', icon: Settings }
 ]
 

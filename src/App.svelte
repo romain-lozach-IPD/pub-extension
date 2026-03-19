@@ -5,6 +5,7 @@
   import XmlEditor from './components/XmlEditor.svelte'
   import LinksManager from './components/LinksManager.svelte'
   import TasksManager from './components/TasksManager.svelte'
+  import ApiDoc from './components/ApiDoc.svelte'
   import Settings from './components/Settings.svelte'
 </script>
 
@@ -17,6 +18,8 @@
     <LinksManager />
   {:else if $currentPage === 'tasks'}
     <TasksManager />
+  {:else if $currentPage === 'apidoc'}
+    <ApiDoc />
   {:else if $currentPage === 'settings'}
     <Settings />
   {/if}

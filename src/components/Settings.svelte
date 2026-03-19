@@ -5,10 +5,29 @@
   import { environments } from '../stores/environments.js'
   import { favorites } from '../stores/favorites.js'
   import { onMount } from 'svelte'
-  import { AlertTriangle, Plus, Edit2, Trash2, Check, X, Server, Upload } from 'lucide-svelte'
+  import { AlertTriangle, Plus, Edit2, Trash2, Check, X, Server, Upload, HardDrive } from 'lucide-svelte'
 
   let showResetConfirm = false
   let fileInput
+  let storageUsed = 0
+  const STORAGE_MAX = 10 * 1024 * 1024
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 o'
+    if (bytes < 1024) return bytes + ' o'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' Ko'
+    return (bytes / (1024 * 1024)).toFixed(2) + ' Mo'
+  }
+
+  async function loadStorageInfo() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(null, (items) => {
+        const jsonString = JSON.stringify(items)
+        storageUsed = new Blob([jsonString]).size
+        resolve()
+      })
+    })
+  }
 
   // Environments management
   let showEnvForm = false
@@ -17,17 +36,19 @@
     name: '',
     url_api: '',
     url_front: '',
+    url_opensapi_doc: '',
     login: '',
     password: ''
   }
 
   onMount(() => {
     environments.load()
+    loadStorageInfo()
   })
 
   async function exportData() {
     // Récupérer toutes les données nécessaires
-    const result = await chrome.storage.local.get(['favorites', 'environments', 'links'])
+    const result = await chrome.storage.local.get(['favorites', 'environments', 'links', 'tasks'])
     
     // Préparer les données d'export avec mot de passe vide
     const safeEnvironments = (result.environments || []).map(env => {
@@ -132,6 +153,7 @@
       name: '',
       url_api: '',
       url_front: '',
+      url_opensapi_doc: '',
       login: '',
       password: ''
     }
@@ -149,6 +171,7 @@
       name: env.name,
       url_api: env.url_api,
       url_front: env.url_front,
+      url_opensapi_doc: env.url_opensapi_doc || '',
       login: env.login,
       password: env.password
     }
@@ -231,6 +254,17 @@
                 type="url" 
                 bind:value={envFormData.url_front}
                 placeholder="http://localhost"
+                class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
+              />
+            </div>
+
+            <div>
+              <label for="env-opensapi" class="block text-sm text-gray-600 mb-1">URL Documentation OpenAPI</label>
+              <input 
+                id="env-opensapi"
+                type="url" 
+                bind:value={envFormData.url_opensapi_doc}
+                placeholder="https://api.example.com/docs/openapi.json"
                 class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
               />
             </div>
@@ -401,9 +435,44 @@
     </div>
   </div>
 
-  <!-- Informations -->
-  <div class="bg-white border border-gray-200 rounded p-4 text-sm text-gray-600">
-    <p><strong>Version :</strong> 1.0.0</p>
-    <p class="mt-1">Extension Chrome avec Side Panel</p>
+  <!-- Stockage -->
+  <div class="bg-white border border-gray-200 rounded p-4">
+    <div class="bg-gray-50 border-b border-gray-200 p-3 font-semibold text-gray-700 mb-3 -m-4 flex items-center gap-2">
+      <HardDrive size={20} />
+      Stockage
+    </div>
+    <div class="mt-6">
+      <div class="flex justify-between items-center text-sm mb-2">
+        <span class="text-gray-600">Espace utilisé</span>
+        <span class="font-medium">{formatBytes(storageUsed)}</span>
+      </div>
+      <div class="flex justify-between items-center text-sm mb-2">
+        <span class="text-gray-600">Espace maximum</span>
+        <span class="font-medium">{formatBytes(STORAGE_MAX)}</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2.5 mt-3">
+        <div 
+          class="h-2.5 rounded-full transition-all {storageUsed / STORAGE_MAX > 0.8 ? 'bg-red-500' : 'bg-[#1e3a5f]'}" 
+          style="width: {Math.min((storageUsed / STORAGE_MAX) * 100, 100)}%"
+        ></div>
+      </div>
+      <p class="text-xs text-gray-400 mt-2 text-right">
+        {((storageUsed / STORAGE_MAX) * 100).toFixed(1)}% utilisé
+      </p>
+    </div>
+  </div>
+
+  <!-- À propos -->
+  <div class="bg-white border border-gray-200 rounded p-4">
+    <div class="bg-gray-50 border-b border-gray-200 p-3 font-semibold text-gray-700 mb-3 -m-4">
+      À propos
+    </div>
+    <div class="space-y-2 text-sm text-gray-600 mt-6">
+      <p><strong>Nom :</strong> Side Panel Extension</p>
+      <p><strong>Version :</strong> 1.0.0</p>
+      <p><strong>Description :</strong> Extension Chrome avec Side Panel</p>
+      <p><strong>Auteur :</strong> Roloza</p>
+      <p><strong>Plateforme :</strong> Chrome Extension (Manifest V3)</p>
+    </div>
   </div>
 </div>

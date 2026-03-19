@@ -7,6 +7,7 @@ Extension Chrome avec interface Svelte affichée dans le Side Panel.
 - **Accueil** : Gestion des connexions avec recherche
 - **XML** : Éditeur XML avec auto-sauvegarde et téléchargement
 - **Liens** : Gestionnaire de liens utiles (CRUD complet)
+- **Tâches** : Gestionnaire de tâches avec commentaires, priorités et drag-drop
 - **Paramètres** : Configuration et export des données
 
 ## Installation

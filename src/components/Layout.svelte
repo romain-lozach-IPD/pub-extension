@@ -1,6 +1,11 @@
 <script>
   import { currentPage, pages } from '../stores/navigation.js'
+  import Toast from './Toast.svelte'
+  import ConfirmDialog from './ConfirmDialog.svelte'
 </script>
+
+<Toast />
+<ConfirmDialog />
 
 <div class="flex h-screen bg-[#f5f5f5]">
   <!-- Menu vertical -->

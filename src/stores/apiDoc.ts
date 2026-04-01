@@ -34,7 +34,7 @@ function createApiDocStore() {
 
           for (const tag of endpointTags) {
             endpoints.push({
-              id: `${method}-${path}-${tag}`,
+              id: crypto.randomUUID(),
               method: method.toUpperCase(),
               path,
               summary: (d.summary as string | undefined) ?? '',

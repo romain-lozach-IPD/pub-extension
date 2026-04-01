@@ -31,7 +31,7 @@ export const filters = createFiltersStore()
 interface SearchState {
   results: SearchResult[]
   meta: SearchMeta | null
-  loading: boolean
+  isLoading: boolean
   error: string | null
 }
 
@@ -39,7 +39,7 @@ function createSearchStore() {
   const { subscribe, set, update } = writable<SearchState>({
     results: [],
     meta: null,
-    loading: false,
+    isLoading: false,
     error: null
   })
 
@@ -57,7 +57,7 @@ function createSearchStore() {
       currentAbortController = new AbortController()
       const signal = currentAbortController.signal
 
-      update(s => ({ ...s, loading: true, error: null }))
+      update(s => ({ ...s, isLoading: true, error: null }))
 
       try {
         const activeEnv = environments.getActive()
@@ -101,7 +101,7 @@ function createSearchStore() {
           ...s,
           results: data.data ?? [],
           meta: data.meta ?? null,
-          loading: false,
+          isLoading: false,
           error: null
         }))
 
@@ -114,7 +114,7 @@ function createSearchStore() {
           ...s,
           results: [],
           meta: null,
-          loading: false,
+          isLoading: false,
           error: (err as Error).message || 'Erreur de connexion au serveur'
         }))
         throw err
@@ -125,7 +125,7 @@ function createSearchStore() {
       set({
         results: [],
         meta: null,
-        loading: false,
+        isLoading: false,
         error: null
       })
     }

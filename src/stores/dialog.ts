@@ -1,8 +1,9 @@
 import { writable } from 'svelte/store'
+import type { DialogState } from '../types.ts'
 
-export const dialogState = writable(null)
+export const dialogState = writable<DialogState | null>(null)
 
-export function confirm(message) {
+export function confirm(message: string): Promise<boolean> {
   return new Promise(resolve => {
     dialogState.set({
       message,

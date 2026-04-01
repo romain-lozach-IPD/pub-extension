@@ -14,68 +14,53 @@
 
 ### Setup
 
-- [ ] `npm install -D typescript @types/chrome`
-- [ ] Créer `tsconfig.json` à la racine
-  ```json
-  {
-    "compilerOptions": {
-      "target": "ES2020",
-      "module": "ESNext",
-      "moduleResolution": "bundler",
-      "strict": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "skipLibCheck": true,
-      "types": ["chrome"]
-    },
-    "include": ["src", "background.js"]
-  }
-  ```
-- [ ] Ajouter `"check": "svelte-check --tsconfig ./tsconfig.json"` dans `package.json`
+- [x] `npm install -D typescript @types/chrome`
+- [x] Créer `tsconfig.json` à la racine
+- [x] Ajouter `"check": "svelte-check --tsconfig ./tsconfig.json"` dans `package.json`
 
 ### Couche 1 — Types partagés
 
-- [ ] Créer `src/types.ts` avec les interfaces :
+- [x] Créer `src/types.ts` avec les interfaces :
   - `TaskStatus`, `TaskPriority`, `ToastType` (union types)
   - `Environment`, `Task`, `Comment`, `Link`
   - `SearchFilters`, `ToastItem`
 
 ### Couche 2 — Infrastructure
 
-- [ ] `src/lib/storage.js` → `.ts` — typer `get<T>`, `set`, `remove`
-- [ ] `src/lib/crudStore.js` → `.ts` — générique `createCrudStore<T extends { id: string }>`
+- [x] `src/lib/storage.js` → `.ts` — typer `get<T>`, `set`, `remove`
+- [x] `src/lib/crudStore.js` → `.ts` — générique `createCrudStore<T extends { id: string }>`
 
 ### Couche 3 — Stores (ordre croissant de complexité)
 
-- [ ] `toast.js` → `.ts`
-- [ ] `dialog.js` → `.ts`
-- [ ] `navigation.js` → `.ts`
-- [ ] `settings.js` → `.ts`
-- [ ] `connections.js` → `.ts`
-- [ ] `environments.js` → `.ts`
-- [ ] `favorites.js` → `.ts`
-- [ ] `links.js` → `.ts`
-- [ ] `tasks.js` → `.ts`
-- [ ] `search.js` → `.ts`
-- [ ] `apiDoc.js` → `.ts` *(le plus complexe — types OpenAPI)*
+- [x] `toast.js` → `.ts`
+- [x] `dialog.js` → `.ts`
+- [x] `navigation.js` → `.ts`
+- [x] `settings.js` → `.ts`
+- [x] `connections.js` → `.ts`
+- [x] `environments.js` → `.ts`
+- [x] `favorites.js` → `.ts`
+- [x] `links.js` → `.ts`
+- [x] `tasks.js` → `.ts`
+- [x] `search.js` → `.ts`
+- [x] `apiDoc.js` → `.ts` *(le plus complexe — types OpenAPI)*
 
 ### Couche 4 — Composants (ajouter `lang="ts"` dans `<script>`)
 
-- [ ] `Toast.svelte`
-- [ ] `ConfirmDialog.svelte`
-- [ ] `Layout.svelte`
-- [ ] `TaskComments.svelte`
-- [ ] `XmlEditor.svelte`
-- [ ] `TasksManager.svelte`
-- [ ] `LinksManager.svelte`
-- [ ] `Home.svelte`
-- [ ] `ApiDoc.svelte`
-- [ ] `Settings.svelte`
+- [x] `Toast.svelte`
+- [x] `ConfirmDialog.svelte`
+- [x] `Layout.svelte`
+- [x] `TaskComments.svelte`
+- [x] `XmlEditor.svelte`
+- [x] `TasksManager.svelte`
+- [x] `LinksManager.svelte`
+- [x] `Home.svelte`
+- [x] `ApiDoc.svelte`
+- [x] `Settings.svelte`
 
 ### Couche 5 — Root
 
-- [ ] `main.js` → `main.ts`
-- [ ] `background.js` → `background.ts`
+- [x] `main.js` → `main.ts`
+- [x] `background.js` → `background.ts`
 
 ### Vérification Phase A
 
@@ -176,3 +161,4 @@ npm run build   # toujours OK
 | Date | Action |
 |------|--------|
 | 2026-04-01 | Roadmap créée |
+| 2026-04-01 | Phase A terminée — `npm run check` 0 erreur, `npm run build` OK |

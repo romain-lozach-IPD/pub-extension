@@ -1,16 +1,16 @@
-<script>
-  import { tasks } from '../stores/tasks.js'
-  import { confirm } from '../stores/dialog.js'
+<script lang="ts">
+  import { tasks } from '../stores/tasks.ts'
+  import { confirm } from '../stores/dialog.ts'
   import { X, Send, Edit2, Trash2 } from 'lucide-svelte'
+  import { createEventDispatcher } from 'svelte'
+  import type { Task, Comment } from '../types.ts'
 
-  export let task
+  export let task: Task
 
   const dispatch = createEventDispatcher()
 
-  import { createEventDispatcher } from 'svelte'
-
   let newComment = ''
-  let editingCommentId = null
+  let editingCommentId: string | null = null
   let editingCommentContent = ''
 
   function close() {
@@ -23,7 +23,7 @@
     newComment = ''
   }
 
-  function startEditComment(comment) {
+  function startEditComment(comment: Comment) {
     editingCommentId = comment.id
     editingCommentContent = comment.content
   }
@@ -40,7 +40,7 @@
     editingCommentContent = ''
   }
 
-  async function deleteComment(commentId) {
+  async function deleteComment(commentId: string) {
     if (!await confirm('Supprimer ce commentaire ?')) return
     tasks.deleteComment(task.id, commentId)
   }

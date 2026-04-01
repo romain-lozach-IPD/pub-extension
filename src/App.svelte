@@ -1,5 +1,5 @@
-<script>
-  import { currentPage } from './stores/navigation.js'
+<script lang="ts">
+  import { currentPage } from './stores/navigation.ts'
   import Layout from './components/Layout.svelte'
   import Home from './components/Home.svelte'
   import XmlEditor from './components/XmlEditor.svelte'

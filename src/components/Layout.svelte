@@ -1,5 +1,5 @@
-<script>
-  import { currentPage, pages } from '../stores/navigation.js'
+<script lang="ts">
+  import { currentPage, pages } from '../stores/navigation.ts'
   import Toast from './Toast.svelte'
   import ConfirmDialog from './ConfirmDialog.svelte'
 </script>
@@ -21,14 +21,14 @@
       </button>
     {/each}
   </nav>
-  
+
   <!-- Contenu -->
   <div class="flex-1 flex flex-col overflow-hidden">
     <!-- Header avec logo -->
     <header class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-shrink-0">
       <img src="https://www.marchesonline.com/_nuxt/Logo.9eb82cb7.svg" alt="Marchés Online" class="h-8" />
     </header>
-    
+
     <main class="flex-1 overflow-auto p-4">
       <slot />
     </main>

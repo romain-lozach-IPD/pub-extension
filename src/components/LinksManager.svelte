@@ -1,97 +1,80 @@
-<script>
-  import { links } from '../stores/links.js'
-  import { environments } from '../stores/environments.js'
-  import { confirm } from '../stores/dialog.js'
+<script lang="ts">
+  import { links } from '../stores/links.ts'
+  import { environments } from '../stores/environments.ts'
+  import { confirm } from '../stores/dialog.ts'
   import { onMount } from 'svelte'
   import { Pencil, Trash2, GripVertical, Plus } from 'lucide-svelte'
+  import type { Link } from '../types.ts'
 
-  let newLink = { name: '', url: '', description: '' }
-  let editingId = null
+  let newLink: { name: string; url: string; description: string } = { name: '', url: '', description: '' }
+  let editingId: string | null = null
   let showForm = false
-  let draggedId = null
-  let dragOverId = null
+  let draggedId: string | null = null
+  let dragOverId: string | null = null
 
   onMount(() => {
     links.load()
     environments.load()
   })
 
-  function getApiBase() {
+  function getApiBase(): string {
     const activeEnv = environments.getActive()
-    return activeEnv?.url_api?.replace(/\/$/, '') || ''
+    return activeEnv?.url_api?.replace(/\/$/, '') ?? ''
   }
 
-  function normalizeUrl(url) {
-    // Si l'URL commence par http, la retourner telle quelle (URL absolue)
+  function normalizeUrl(url: string): string {
     if (url.match(/^https?:\/\//)) {
       return url
     }
-    
-    // Si c'est un port (commence par :), le garder tel quel
     if (url.match(/^:\d+/)) {
       return url
     }
-    
-    // Sinon, normaliser en chemin relatif (sans domaine)
-    // Enlever le / initial s'il existe pour stockage cohérent
     return url.startsWith('/') ? url.substring(1) : url
   }
-  
-  function displayUrl(url) {
-    // Si l'URL est absolue (http), l'afficher telle quelle
+
+  function displayUrl(url: string): string {
     if (url.match(/^https?:\/\//)) {
       return url
     }
-    
-    // Si c'est un port (commence par :), l'ajouter au hostname
     if (url.match(/^:\d+/)) {
       const apiBase = getApiBase()
       if (apiBase) {
-        // Extraire le protocol et hostname de l'API base
-        const match = apiBase.match(/^(https?:\/\/)([^\/]+)/)
+        const match = apiBase.match(/^(https?:\/\/)([^/]+)/)
         if (match) {
           return match[1] + match[2] + url
         }
       }
       return 'http://localhost' + url
     }
-    
-    // Sinon, ajouter le domaine de l'API active pour l'affichage
     const apiBase = getApiBase()
     if (apiBase) {
       return apiBase + '/' + url
     }
-    
-    // Fallback
     return '/' + url
   }
 
   function saveLink() {
     if (!newLink.name || !newLink.url) return
-    
-    // Normaliser l'URL (sans domaine, juste le chemin)
     newLink.url = normalizeUrl(newLink.url)
-    
     if (editingId) {
       links.update(editingId, newLink)
     } else {
       links.add(newLink)
     }
-    
     resetForm()
   }
 
-  function edit(link) {
-    newLink = { 
-      name: link.name, 
-      url: link.url, 
-      description: link.description || '' 
+  function edit(link: Link) {
+    newLink = {
+      name: link.name,
+      url: link.url,
+      description: link.description ?? ''
     }
     editingId = link.id
     showForm = true
   }
 
-  async function remove(id) {
+  async function remove(id: string) {
     if (await confirm('Supprimer ce lien ?')) {
       links.remove(id)
     }
@@ -103,34 +86,35 @@
     showForm = false
   }
 
-  function openLink(url) {
+  function openLink(url: string) {
     const fullUrl = displayUrl(url)
     chrome.tabs.create({ url: fullUrl })
   }
 
-  function handleDragStart(e, id) {
+  function handleDragStart(e: DragEvent, id: string) {
     draggedId = id
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', id.toString())
-    // Empêcher la propagation pour éviter les conflits
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', id)
+    }
     e.stopPropagation()
   }
 
-  function handleDragOver(e, id) {
+  function handleDragOver(e: DragEvent, id: string) {
     e.preventDefault()
     e.stopPropagation()
-    e.dataTransfer.dropEffect = 'move'
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
     if (id !== draggedId) {
       dragOverId = id
     }
   }
 
-  function handleDragLeave(e) {
+  function handleDragLeave(e: DragEvent) {
     e.stopPropagation()
     dragOverId = null
   }
 
-  function handleDrop(e, targetId) {
+  function handleDrop(e: DragEvent, targetId: string) {
     e.preventDefault()
     e.stopPropagation()
     if (draggedId && draggedId !== targetId) {
@@ -138,7 +122,7 @@
       const draggedIndex = linksArray.findIndex(l => l.id === draggedId)
       const targetIndex = linksArray.findIndex(l => l.id === targetId)
       if (draggedIndex !== -1 && targetIndex !== -1) {
-        links.reorder(draggedId, targetIndex)
+        links.reorder(draggedId as string, targetIndex)
       }
     }
     draggedId = null
@@ -150,16 +134,15 @@
     dragOverId = null
   }
 
-  function handleHandleMouseDown(e) {
+  function handleHandleMouseDown(e: MouseEvent) {
     e.stopPropagation()
   }
 
-  function handleHandleClick(e) {
+  function handleHandleClick(e: MouseEvent) {
     e.stopPropagation()
   }
 
-  function handleHandleKeydown(e) {
-    // Empêcher la propagation pour les touches espace et entrée
+  function handleHandleKeydown(e: KeyboardEvent) {
     if (e.key === ' ' || e.key === 'Enter') {
       e.stopPropagation()
     }
@@ -185,26 +168,26 @@
         {editingId ? 'Modifier le lien' : 'Nouveau lien'}
       </h3>
       <div class="space-y-3">
-        <input 
-          bind:value={newLink.name} 
-          placeholder="Nom du lien *" 
-          class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f]" 
+        <input
+          bind:value={newLink.name}
+          placeholder="Nom du lien *"
+          class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f]"
         />
-        <input 
-          bind:value={newLink.url} 
-          placeholder="URL * (ex: api/endpoint ou http://...)" 
-          class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f]" 
+        <input
+          bind:value={newLink.url}
+          placeholder="URL * (ex: api/endpoint ou http://...)"
+          class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f]"
         />
         <p class="text-xs text-gray-500">
           Les chemins relatifs seront affichés avec : {getApiBase() || 'https://...'} (modifiable dans l'environnement actif)
         </p>
-        <input 
-          bind:value={newLink.description} 
-          placeholder="Description (optionnel)" 
-          class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f]" 
+        <input
+          bind:value={newLink.description}
+          placeholder="Description (optionnel)"
+          class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f]"
         />
         <div class="flex gap-2">
-          <button 
+          <button
             on:click={saveLink}
             disabled={!newLink.name || !newLink.url}
             class="flex-1 bg-[#1e3a5f] hover:bg-[#2a4a73] disabled:bg-gray-300 text-white py-2 rounded font-medium transition-colors"
@@ -212,7 +195,7 @@
             {editingId ? 'Modifier' : 'Ajouter'}
           </button>
           {#if editingId}
-            <button 
+            <button
               on:click={resetForm}
               class="px-4 py-2 bg-white border border-[#1e3a5f] text-[#1e3a5f] rounded transition-colors"
             >
@@ -231,7 +214,7 @@
         Aucun lien enregistré
       </div>
     {:else}
-      {#each $links as link, index (link.id)}
+      {#each $links as link (link.id)}
         <div
           class="bg-white border border-gray-200 rounded p-4 relative group transition-all {dragOverId === link.id ? 'border-t-4 border-t-[#1e3a5f]' : ''} {draggedId === link.id ? 'opacity-50' : ''}"
           draggable="false"
@@ -240,8 +223,8 @@
           on:dragleave={handleDragLeave}
           on:drop={(e) => handleDrop(e, link.id)}
         >
-          <!-- Handle de drag - carré visible au hover -->
-          <div 
+          <!-- Handle de drag -->
+          <div
             class="absolute -top-[7px] left-1/2 transform -translate-x-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-20"
             draggable="true"
             role="button"
@@ -258,10 +241,10 @@
               <GripVertical size={14} />
             </div>
           </div>
-          
+
           <div class="flex justify-between items-start">
             <div class="flex-1 min-w-0">
-              <button 
+              <button
                 on:click={() => openLink(link.url)}
                 class="text-left group w-full max-w-full overflow-hidden"
               >

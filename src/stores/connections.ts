@@ -1,11 +1,12 @@
 import { writable } from 'svelte/store'
-import { createCrudStore } from '../lib/crudStore.js'
+import { createCrudStore } from '../lib/crudStore.ts'
+import type { Connection } from '../types.ts'
 
-const base = createCrudStore('connections')
+const base = createCrudStore<Connection>('connections')
 
 export const connections = {
   ...base,
-  search: (query) => (items) => {
+  search: (query: string) => (items: Connection[]): Connection[] => {
     if (!query) return items
     const lower = query.toLowerCase()
     return items.filter(c =>
@@ -16,4 +17,4 @@ export const connections = {
   }
 }
 
-export const searchQuery = writable('')
+export const searchQuery = writable<string>('')

@@ -1,5 +1,5 @@
-<script>
-  import { toastStore } from '../stores/toast.js'
+<script lang="ts">
+  import { toastStore } from '../stores/toast.ts'
 </script>
 
 <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-xs w-full pointer-events-none">

@@ -1,10 +1,11 @@
-import { createCrudStore } from '../lib/crudStore.js'
+import { createCrudStore } from '../lib/crudStore.ts'
+import type { Link } from '../types.ts'
 
-const base = createCrudStore('links')
+const base = createCrudStore<Link>('links')
 
 export const links = {
   ...base,
-  reorder: (draggedId, targetIndex) => {
+  reorder: (draggedId: string, targetIndex: number): void => {
     base._mutate(items => {
       const draggedIndex = items.findIndex(l => l.id === draggedId)
       if (draggedIndex === -1 || draggedIndex === targetIndex) return items

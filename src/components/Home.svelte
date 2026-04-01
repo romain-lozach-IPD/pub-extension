@@ -81,7 +81,7 @@
 
 <div class="space-y-4 max-w-2xl bg-[#f5f5f5] p-4">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">Recherche Tokens</h1>
+    <h1 class="text-2xl font-bold text-gray-800">Rechercher un compte</h1>
     <button 
       on:click={() => showFilters = !showFilters}
       class="text-sm text-[#1e3a5f] hover:text-[#2a4a73]"

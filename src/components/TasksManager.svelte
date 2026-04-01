@@ -448,7 +448,6 @@
                       on:change={(e) => { setStatus(task.id, e.target.value); closeAllSelects(); }}
                       on:blur={closeAllSelects}
                       class="text-xs px-2 py-0.5 rounded border {getStatusBadgeClasses(task.status)} bg-transparent cursor-pointer focus:outline-none"
-                      autofocus
                     >
                       {#each Object.entries(statusLabels) as [value, label]}
                         <option value={value} class="bg-white text-gray-800">{label}</option>
@@ -468,7 +467,6 @@
                       on:change={(e) => { setPriority(task.id, e.target.value); closeAllSelects(); }}
                       on:blur={closeAllSelects}
                       class="text-xs px-2 py-0.5 rounded border {getPriorityBadgeClasses(task.priority)} bg-transparent cursor-pointer focus:outline-none"
-                      autofocus
                     >
                       {#each Object.entries(priorityLabels) as [value, label]}
                         <option value={value} class="bg-white text-gray-800">{label}</option>
@@ -551,8 +549,9 @@
 </div>
 
 {#if showCommentsModal && selectedTask}
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={closeCommentsModal}>
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[80vh] flex flex-col" on:click|stopPropagation>
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="button" tabindex="0" on:click={closeCommentsModal} on:keydown={(e) => e.key === 'Escape' && closeCommentsModal()}>
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[80vh] flex flex-col" role="dialog" aria-modal="true" on:click|stopPropagation on:keydown|stopPropagation>
       <div class="flex items-center justify-between p-4 border-b border-gray-200">
         <div>
           <h3 class="font-semibold text-gray-800">Commentaires</h3>

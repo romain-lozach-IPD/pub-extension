@@ -1,27 +1,28 @@
-<script>
-  import { connections } from '../stores/connections.js'
-  import { links } from '../stores/links.js'
-  import { tasks } from '../stores/tasks.js'
-  import { environments } from '../stores/environments.js'
-  import { favorites } from '../stores/favorites.js'
-  import { toastStore } from '../stores/toast.js'
-  import { confirm } from '../stores/dialog.js'
+<script lang="ts">
+  import { connections } from '../stores/connections.ts'
+  import { links } from '../stores/links.ts'
+  import { tasks } from '../stores/tasks.ts'
+  import { environments } from '../stores/environments.ts'
+  import { favorites } from '../stores/favorites.ts'
+  import { toastStore } from '../stores/toast.ts'
+  import { confirm } from '../stores/dialog.ts'
   import { onMount } from 'svelte'
   import { AlertTriangle, Plus, Edit2, Trash2, Check, X, Server, Upload, HardDrive } from 'lucide-svelte'
+  import type { Environment } from '../types.ts'
 
   let showResetConfirm = false
-  let fileInput
+  let fileInput: HTMLInputElement
   let storageUsed = 0
   const STORAGE_MAX = 10 * 1024 * 1024
 
-  function formatBytes(bytes) {
+  function formatBytes(bytes: number): string {
     if (bytes === 0) return '0 o'
     if (bytes < 1024) return bytes + ' o'
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' Ko'
     return (bytes / (1024 * 1024)).toFixed(2) + ' Mo'
   }
 
-  async function loadStorageInfo() {
+  async function loadStorageInfo(): Promise<void> {
     return new Promise((resolve) => {
       chrome.storage.local.get(null, (items) => {
         const jsonString = JSON.stringify(items)
@@ -33,8 +34,8 @@
 
   // Environments management
   let showEnvForm = false
-  let editingEnvId = null
-  let envFormData = {
+  let editingEnvId: string | null = null
+  let envFormData: Omit<Environment, 'id' | 'isActive' | 'createdAt' | 'updatedAt'> = {
     name: '',
     url_api: '',
     url_front: '',
@@ -48,27 +49,24 @@
     loadStorageInfo()
   })
 
-  async function exportData() {
-    // Récupérer toutes les données nécessaires
+  async function exportData(): Promise<void> {
     const result = await chrome.storage.local.get(['favorites', 'environments', 'links', 'tasks'])
-    
-    // Préparer les données d'export avec mot de passe vide
-    const safeEnvironments = (result.environments || []).map(env => {
+
+    const safeEnvironments = ((result['environments'] ?? []) as Environment[]).map(env => {
       const safeEnv = { ...env }
-      safeEnv.password = '' // Toujours vide pour la sécurité
+      safeEnv.password = ''
       return safeEnv
     })
-    
-    const exportData = {
+
+    const exportPayload = {
       exportedAt: new Date().toISOString(),
-      favorites: result.favorites || [],
+      favorites: result['favorites'] ?? [],
       environments: safeEnvironments,
-      links: result.links || [],
-      tasks: result.tasks || []
+      links: result['links'] ?? [],
+      tasks: result['tasks'] ?? []
     }
-    
-    // Créer et télécharger le fichier
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+
+    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -79,52 +77,53 @@
     URL.revokeObjectURL(url)
   }
 
-  function isValidUrl(url) {
-    if (!url) return true // champ optionnel
+  function isValidUrl(url: string): boolean {
+    if (!url) return true
     try { new URL(url); return true } catch { return false }
   }
 
-  function validateImportShape(data) {
+  function validateImportShape(data: unknown): string | null {
     if (!data || typeof data !== 'object') return 'Format de fichier invalide'
+    const d = data as Record<string, unknown>
 
-    if (data.environments !== undefined) {
-      if (!Array.isArray(data.environments)) return 'Champ "environments" invalide'
-      for (const env of data.environments) {
-        if (!env || typeof env.name !== 'string' || typeof env.url_api !== 'string') {
+    if (d['environments'] !== undefined) {
+      if (!Array.isArray(d['environments'])) return 'Champ "environments" invalide'
+      for (const env of d['environments']) {
+        if (!env || typeof (env as Record<string, unknown>)['name'] !== 'string' || typeof (env as Record<string, unknown>)['url_api'] !== 'string') {
           return 'Un environnement est mal formé (name et url_api requis)'
         }
       }
     }
 
-    if (data.links !== undefined) {
-      if (!Array.isArray(data.links)) return 'Champ "links" invalide'
-      for (const link of data.links) {
-        if (!link || typeof link.name !== 'string' || typeof link.url !== 'string') {
+    if (d['links'] !== undefined) {
+      if (!Array.isArray(d['links'])) return 'Champ "links" invalide'
+      for (const link of d['links']) {
+        if (!link || typeof (link as Record<string, unknown>)['name'] !== 'string' || typeof (link as Record<string, unknown>)['url'] !== 'string') {
           return 'Un lien est mal formé (name et url requis)'
         }
       }
     }
 
-    if (data.tasks !== undefined) {
-      if (!Array.isArray(data.tasks)) return 'Champ "tasks" invalide'
-      for (const task of data.tasks) {
-        if (!task || typeof task.title !== 'string') {
+    if (d['tasks'] !== undefined) {
+      if (!Array.isArray(d['tasks'])) return 'Champ "tasks" invalide'
+      for (const task of d['tasks']) {
+        if (!task || typeof (task as Record<string, unknown>)['title'] !== 'string') {
           return 'Une tâche est mal formée (title requis)'
         }
       }
     }
 
-    if (data.favorites !== undefined && !Array.isArray(data.favorites)) {
+    if (d['favorites'] !== undefined && !Array.isArray(d['favorites'])) {
       return 'Champ "favorites" invalide'
     }
 
     return null
   }
 
-  async function importData(file) {
+  async function importData(file: File): Promise<void> {
     try {
       const text = await file.text()
-      const data = JSON.parse(text)
+      const data = JSON.parse(text) as Record<string, unknown>
 
       const validationError = validateImportShape(data)
       if (validationError) {
@@ -136,11 +135,11 @@
         return
       }
 
-      const importPayload = {}
-      if (data.favorites) importPayload.favorites = data.favorites
-      if (data.environments) importPayload.environments = data.environments
-      if (data.links) importPayload.links = data.links
-      if (data.tasks) importPayload.tasks = data.tasks
+      const importPayload: Record<string, unknown> = {}
+      if (data['favorites']) importPayload['favorites'] = data['favorites']
+      if (data['environments']) importPayload['environments'] = data['environments']
+      if (data['links']) importPayload['links'] = data['links']
+      if (data['tasks']) importPayload['tasks'] = data['tasks']
 
       await chrome.storage.local.set(importPayload)
 
@@ -151,20 +150,20 @@
 
       toastStore.success('Données importées avec succès !')
     } catch (e) {
-      toastStore.error('Erreur lors de l\'import : ' + e.message)
+      toastStore.error('Erreur lors de l\'import : ' + (e as Error).message)
     }
   }
 
-  function handleFileSelect(event) {
-    const file = event.target.files[0]
+  function handleFileSelect(event: Event): void {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
     if (file) {
       importData(file)
     }
-    // Réinitialiser l'input pour permettre de sélectionner le même fichier à nouveau
-    event.target.value = ''
+    input.value = ''
   }
 
-  function resetAllData() {
+  function resetAllData(): void {
     chrome.storage.local.clear(() => {
       connections.load()
       links.load()
@@ -175,8 +174,7 @@
     })
   }
 
-  // Environment functions
-  function resetEnvForm() {
+  function resetEnvForm(): void {
     envFormData = {
       name: '',
       url_api: '',
@@ -189,17 +187,17 @@
     showEnvForm = false
   }
 
-  function openAddEnvForm() {
+  function openAddEnvForm(): void {
     resetEnvForm()
     showEnvForm = true
   }
 
-  function openEditEnvForm(env) {
+  function openEditEnvForm(env: Environment): void {
     envFormData = {
       name: env.name,
       url_api: env.url_api,
       url_front: env.url_front,
-      url_opensapi_doc: env.url_opensapi_doc || '',
+      url_opensapi_doc: env.url_opensapi_doc ?? '',
       login: env.login,
       password: env.password
     }
@@ -207,7 +205,7 @@
     showEnvForm = true
   }
 
-  async function saveEnvironment() {
+  async function saveEnvironment(): Promise<void> {
     if (!envFormData.name.trim() || !envFormData.url_api.trim()) {
       toastStore.error('Le nom et l\'URL API sont obligatoires')
       return
@@ -223,7 +221,7 @@
       return
     }
 
-    if (!isValidUrl(envFormData.url_opensapi_doc)) {
+    if (!isValidUrl(envFormData.url_opensapi_doc ?? '')) {
       toastStore.error('URL Documentation invalide')
       return
     }
@@ -233,17 +231,17 @@
     } else {
       await environments.add(envFormData)
     }
-    
+
     resetEnvForm()
   }
 
-  async function deleteEnvironment(id) {
+  async function deleteEnvironment(id: string): Promise<void> {
     if (await confirm('Êtes-vous sûr de vouloir supprimer cet environnement ?')) {
       await environments.remove(id)
     }
   }
 
-  async function setActiveEnvironment(id) {
+  async function setActiveEnvironment(id: string): Promise<void> {
     await environments.setActive(id)
   }
 </script>
@@ -259,20 +257,20 @@
       <Server size={20} />
       Environnements
     </div>
-    
+
     <div class="mt-6">
       {#if showEnvForm}
         <div class="bg-gray-50 border border-gray-200 rounded p-4 mb-4">
           <h4 class="font-medium text-gray-700 mb-3">
             {editingEnvId ? 'Modifier l\'environnement' : 'Nouvel environnement'}
           </h4>
-          
+
           <div class="space-y-3">
             <div>
               <label for="env-name" class="block text-sm text-gray-600 mb-1">Nom *</label>
-              <input 
+              <input
                 id="env-name"
-                type="text" 
+                type="text"
                 bind:value={envFormData.name}
                 placeholder="Ex: Production, Développement..."
                 class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
@@ -281,9 +279,9 @@
 
             <div>
               <label for="env-api" class="block text-sm text-gray-600 mb-1">URL API *</label>
-              <input 
+              <input
                 id="env-api"
-                type="url" 
+                type="url"
                 bind:value={envFormData.url_api}
                 placeholder="http://localhost/api"
                 class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
@@ -292,9 +290,9 @@
 
             <div>
               <label for="env-front" class="block text-sm text-gray-600 mb-1">URL Front</label>
-              <input 
+              <input
                 id="env-front"
-                type="url" 
+                type="url"
                 bind:value={envFormData.url_front}
                 placeholder="http://localhost"
                 class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
@@ -303,9 +301,9 @@
 
             <div>
               <label for="env-opensapi" class="block text-sm text-gray-600 mb-1">URL Documentation OpenAPI</label>
-              <input 
+              <input
                 id="env-opensapi"
-                type="url" 
+                type="url"
                 bind:value={envFormData.url_opensapi_doc}
                 placeholder="https://api.example.com/docs/openapi.json"
                 class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
@@ -315,9 +313,9 @@
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label for="env-login" class="block text-sm text-gray-600 mb-1">Login</label>
-                <input 
+                <input
                   id="env-login"
-                  type="text" 
+                  type="text"
                   bind:value={envFormData.login}
                   placeholder="Nom d'utilisateur"
                   class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
@@ -342,14 +340,14 @@
           </div>
 
           <div class="flex gap-2 mt-4">
-            <button 
+            <button
               on:click={saveEnvironment}
               class="flex-1 bg-[#1e3a5f] hover:bg-[#2a4a73] text-white py-2 rounded font-medium transition-colors flex items-center justify-center gap-2"
             >
               <Check size={18} />
               {editingEnvId ? 'Modifier' : 'Ajouter'}
             </button>
-            <button 
+            <button
               on:click={resetEnvForm}
               class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded font-medium transition-colors flex items-center justify-center gap-2"
             >
@@ -359,7 +357,7 @@
           </div>
         </div>
       {:else}
-        <button 
+        <button
           on:click={openAddEnvForm}
           class="w-full bg-[#1e3a5f] hover:bg-[#2a4a73] text-white py-2 rounded font-medium transition-colors flex items-center justify-center gap-2 mb-4"
         >
@@ -387,7 +385,7 @@
                 </div>
                 <div class="flex gap-1">
                   {#if !env.isActive}
-                    <button 
+                    <button
                       on:click={() => setActiveEnvironment(env.id)}
                       class="p-1.5 text-gray-400 hover:text-[#1e3a5f] hover:bg-gray-100 rounded transition-colors"
                       title="Définir comme actif"
@@ -395,14 +393,14 @@
                       <Check size={14} />
                     </button>
                   {/if}
-                  <button 
+                  <button
                     on:click={() => openEditEnvForm(env)}
                     class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                     title="Modifier"
                   >
                     <Edit2 size={14} />
                   </button>
-                  <button 
+                  <button
                     on:click={() => deleteEnvironment(env.id)}
                     class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                     title="Supprimer"
@@ -411,7 +409,7 @@
                   </button>
                 </div>
               </div>
-              
+
               <div class="text-xs text-gray-600 space-y-0.5">
                 <div><span class="text-gray-500">API:</span> {env.url_api}</div>
                 {#if env.url_front}
@@ -432,29 +430,29 @@
   <div class="bg-white border border-gray-200 rounded p-4">
     <h3 class="bg-gray-50 border-b border-gray-200 p-3 font-semibold text-gray-700 mb-3 -m-4">Actions</h3>
     <div class="space-y-2 mt-6">
-      <button 
+      <button
         on:click={exportData}
         class="w-full bg-[#1e3a5f] hover:bg-[#2a4a73] text-white py-2 rounded font-medium flex items-center justify-center gap-2"
       >
         <span>📥</span> Exporter toutes les données
       </button>
-      <button 
+      <button
         on:click={() => fileInput.click()}
         class="w-full bg-white border border-[#1e3a5f] text-[#1e3a5f] hover:bg-gray-50 py-2 rounded font-medium flex items-center justify-center gap-2"
       >
         <Upload size={18} />
         Importer depuis un fichier
       </button>
-      <input 
-        type="file" 
+      <input
+        type="file"
         bind:this={fileInput}
         on:change={handleFileSelect}
         accept=".json"
         class="hidden"
       />
-      
+
       {#if !showResetConfirm}
-        <button 
+        <button
           on:click={() => showResetConfirm = true}
           class="w-full bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded font-medium"
         >
@@ -464,13 +462,13 @@
         <div class="bg-red-50 border border-red-200 rounded p-3 mt-3">
           <p class="text-red-700 text-sm mb-2">Êtes-vous sûr ? Cette action est irréversible.</p>
           <div class="flex gap-2">
-            <button 
+            <button
               on:click={resetAllData}
               class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded font-medium"
             >
               Oui, tout effacer
             </button>
-            <button 
+            <button
               on:click={() => showResetConfirm = false}
               class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded font-medium"
             >
@@ -498,8 +496,8 @@
         <span class="font-medium">{formatBytes(STORAGE_MAX)}</span>
       </div>
       <div class="w-full bg-gray-200 rounded-full h-2.5 mt-3">
-        <div 
-          class="h-2.5 rounded-full transition-all {storageUsed / STORAGE_MAX > 0.8 ? 'bg-red-500' : 'bg-[#1e3a5f]'}" 
+        <div
+          class="h-2.5 rounded-full transition-all {storageUsed / STORAGE_MAX > 0.8 ? 'bg-red-500' : 'bg-[#1e3a5f]'}"
           style="width: {Math.min((storageUsed / STORAGE_MAX) * 100, 100)}%"
         ></div>
       </div>

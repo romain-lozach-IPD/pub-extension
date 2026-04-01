@@ -10,7 +10,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: 'src/index.html',
-        background: 'background.js'
+        background: 'background.ts'
       },
       output: {
         entryFileNames: (chunkInfo) => {

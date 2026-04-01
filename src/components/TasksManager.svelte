@@ -1,32 +1,34 @@
-<script>
-  import { tasks, taskFilters, statusLabels, priorityLabels } from '../stores/tasks.js'
-  import { confirm } from '../stores/dialog.js'
+<script lang="ts">
+  import { tasks, taskFilters, statusLabels, priorityLabels } from '../stores/tasks.ts'
+  import { confirm } from '../stores/dialog.ts'
   import { onMount } from 'svelte'
   import { CheckSquare, Plus, Pencil, Trash2, GripVertical, X, List, Circle, Clock, CheckCircle, XCircle, MessageSquare } from 'lucide-svelte'
   import TaskComments from './TaskComments.svelte'
+  import type { Task, TaskStatus, TaskPriority } from '../types.ts'
+  import type { SvelteComponent } from 'svelte'
 
   let showForm = false
-  let editingId = null
-  let formData = {
+  let editingId: string | null = null
+  let formData: { title: string; description: string; priority: TaskPriority } = {
     title: '',
     description: '',
     priority: 'medium'
   }
 
-  let draggedId = null
-  let dragOverId = null
+  let draggedId: string | null = null
+  let dragOverId: string | null = null
 
   let filterStatus = 'all'
 
   let showCommentsModal = false
-  let selectedTaskId = null
-  let expandedDescriptions = {}
-  let showStatusSelect = null
-  let showPrioritySelect = null
+  let selectedTaskId: string | null = null
+  let expandedDescriptions: Record<string, boolean> = {}
+  let showStatusSelect: string | null = null
+  let showPrioritySelect: string | null = null
 
   let sortBy = 'order'
 
-  $: selectedTask = selectedTaskId ? $tasks.find(t => t.id === selectedTaskId) : null
+  $: selectedTask = selectedTaskId ? $tasks.find(t => t.id === selectedTaskId) : undefined
   $: canDrag = sortBy === 'order'
 
   onMount(() => {
@@ -44,7 +46,7 @@
       if (sortBy === 'order') {
         return (a.order || 0) - (b.order || 0)
       } else if (sortBy === 'priority') {
-        const priorityOrder = { high: 1, medium: 2, low: 3 }
+        const priorityOrder: Record<TaskPriority, number> = { high: 1, medium: 2, low: 3 }
         return (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0)
       }
       return 0
@@ -56,7 +58,7 @@
     showForm = true
   }
 
-  function edit(task) {
+  function edit(task: Task) {
     formData = {
       title: task.title,
       description: task.description || '',
@@ -92,26 +94,26 @@
     resetForm()
   }
 
-  async function remove(id) {
+  async function remove(id: string) {
     if (await confirm('Supprimer cette tâche ?')) {
       tasks.remove(id)
     }
   }
 
-  function toggleStatus(task) {
-    const nextStatus = task.status === 'done' ? 'todo' : 'done'
+  function toggleStatus(task: Task) {
+    const nextStatus: TaskStatus = task.status === 'done' ? 'todo' : 'done'
     tasks.updateStatus(task.id, nextStatus)
   }
 
-  function setStatus(id, status) {
+  function setStatus(id: string, status: TaskStatus) {
     tasks.updateStatus(id, status)
   }
 
-  function setPriority(id, priority) {
+  function setPriority(id: string, priority: TaskPriority) {
     tasks.updatePriority(id, priority)
   }
 
-  function openCommentsModal(task) {
+  function openCommentsModal(task: Task) {
     selectedTaskId = task.id
     showCommentsModal = true
   }
@@ -121,19 +123,29 @@
     selectedTaskId = null
   }
 
-  function toggleExpandDescription(taskId) {
+  function toggleExpandDescription(taskId: string) {
     expandedDescriptions[taskId] = !expandedDescriptions[taskId]
     expandedDescriptions = expandedDescriptions
   }
 
-  function toggleStatusSelect(taskId) {
+  function toggleStatusSelect(taskId: string) {
     showStatusSelect = showStatusSelect === taskId ? null : taskId
     showPrioritySelect = null
   }
 
-  function togglePrioritySelect(taskId) {
+  function togglePrioritySelect(taskId: string) {
     showPrioritySelect = showPrioritySelect === taskId ? null : taskId
     showStatusSelect = null
+  }
+
+  function onStatusChange(e: Event, taskId: string): void {
+    setStatus(taskId, (e.target as HTMLSelectElement).value as TaskStatus)
+    closeAllSelects()
+  }
+
+  function onPriorityChange(e: Event, taskId: string): void {
+    setPriority(taskId, (e.target as HTMLSelectElement).value as TaskPriority)
+    closeAllSelects()
   }
 
   function closeAllSelects() {
@@ -141,37 +153,37 @@
     showPrioritySelect = null
   }
 
-  function getStatusBadgeClasses(status) {
-    const classes = {
+  function getStatusBadgeClasses(status: string): string {
+    const classes: Record<string, string> = {
       todo: 'bg-gray-100 text-gray-700',
       in_progress: 'bg-blue-100 text-blue-700',
       waiting: 'bg-yellow-100 text-yellow-700',
       done: 'bg-green-100 text-green-700',
       canceled: 'bg-red-100 text-red-700'
     }
-    return classes[status] || classes.todo
+    return classes[status] ?? classes['todo']
   }
 
-  function getPriorityBadgeClasses(priority) {
-    const classes = {
+  function getPriorityBadgeClasses(priority: string): string {
+    const classes: Record<string, string> = {
       low: 'bg-green-100 text-green-700 border-green-300',
       medium: 'bg-orange-100 text-orange-700 border-orange-300',
       high: 'bg-red-100 text-red-700 border-red-300'
     }
-    return classes[priority] || classes.medium
+    return classes[priority] ?? classes['medium']
   }
 
-  function getPriorityDot(priority) {
-    const colors = {
+  function getPriorityDot(priority: string): string {
+    const colors: Record<string, string> = {
       low: 'bg-green-500',
       medium: 'bg-orange-500',
       high: 'bg-red-500'
     }
-    return colors[priority] || colors.medium
+    return colors[priority] ?? colors['medium']
   }
 
-  function getStatusFilterClasses(status) {
-    const classes = {
+  function getStatusFilterClasses(status: string): string {
+    const classes: Record<string, string> = {
       all: 'bg-gray-100 text-gray-600 hover:bg-gray-200',
       todo: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
       in_progress: 'bg-blue-100 text-blue-700 hover:bg-blue-200',
@@ -179,11 +191,11 @@
       done: 'bg-green-100 text-green-700 hover:bg-green-200',
       canceled: 'bg-red-100 text-red-700 hover:bg-red-200'
     }
-    return classes[status] || classes.all
+    return classes[status] ?? classes['all']
   }
 
-  function getStatusFilterActiveClasses(status) {
-    const classes = {
+  function getStatusFilterActiveClasses(status: string): string {
+    const classes: Record<string, string> = {
       all: 'bg-[#1e3a5f] text-white',
       todo: 'bg-gray-500 text-white',
       in_progress: 'bg-blue-500 text-white',
@@ -191,43 +203,45 @@
       done: 'bg-green-500 text-white',
       canceled: 'bg-red-500 text-white'
     }
-    return classes[status] || classes.all
+    return classes[status] ?? classes['all']
   }
 
-  function getStatusIcon(status) {
-    const icons = {
-      all: List,
-      todo: Circle,
-      in_progress: Clock,
-      waiting: Clock,
-      done: CheckCircle,
-      canceled: XCircle
+  function getStatusIcon(status: string): typeof SvelteComponent {
+    const icons: Record<string, typeof SvelteComponent> = {
+      all: List as unknown as typeof SvelteComponent,
+      todo: Circle as unknown as typeof SvelteComponent,
+      in_progress: Clock as unknown as typeof SvelteComponent,
+      waiting: Clock as unknown as typeof SvelteComponent,
+      done: CheckCircle as unknown as typeof SvelteComponent,
+      canceled: XCircle as unknown as typeof SvelteComponent
     }
-    return icons[status] || icons.all
+    return icons[status] ?? icons['all']
   }
 
-  function handleDragStart(e, id) {
+  function handleDragStart(e: DragEvent, id: string) {
     draggedId = id
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', id.toString())
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', id)
+    }
     e.stopPropagation()
   }
 
-  function handleDragOver(e, id) {
+  function handleDragOver(e: DragEvent, id: string) {
     e.preventDefault()
     e.stopPropagation()
-    e.dataTransfer.dropEffect = 'move'
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
     if (id !== draggedId) {
       dragOverId = id
     }
   }
 
-  function handleDragLeave(e) {
+  function handleDragLeave(e: DragEvent) {
     e.stopPropagation()
     dragOverId = null
   }
 
-  function handleDrop(e, targetId) {
+  function handleDrop(e: DragEvent, targetId: string) {
     e.preventDefault()
     e.stopPropagation()
     if (draggedId) {
@@ -245,28 +259,32 @@
     dragOverId = null
   }
 
-  function handleHandleMouseDown(e) {
+  function handleHandleMouseDown(e: MouseEvent) {
     e.stopPropagation()
   }
 
-  function handleHandleClick(e) {
+  function handleHandleClick(e: MouseEvent) {
     e.stopPropagation()
   }
 
-  function handleHandleKeydown(e) {
+  function handleHandleKeydown(e: KeyboardEvent) {
     if (e.key === ' ' || e.key === 'Enter') {
       e.stopPropagation()
     }
   }
 
-  const statusFilters = [
-    { id: 'all', label: 'Tous', icon: List },
-    { id: 'todo', label: 'À faire', icon: Circle },
-    { id: 'in_progress', label: 'En cours', icon: Clock },
-    { id: 'waiting', label: 'En attente', icon: Clock },
-    { id: 'done', label: 'Terminées', icon: CheckCircle },
-    { id: 'canceled', label: 'Annulées', icon: XCircle }
+  const statusFilters: Array<{ id: string; label: string; icon: typeof SvelteComponent }> = [
+    { id: 'all', label: 'Tous', icon: List as unknown as typeof SvelteComponent },
+    { id: 'todo', label: 'À faire', icon: Circle as unknown as typeof SvelteComponent },
+    { id: 'in_progress', label: 'En cours', icon: Clock as unknown as typeof SvelteComponent },
+    { id: 'waiting', label: 'En attente', icon: Clock as unknown as typeof SvelteComponent },
+    { id: 'done', label: 'Terminées', icon: CheckCircle as unknown as typeof SvelteComponent },
+    { id: 'canceled', label: 'Annulées', icon: XCircle as unknown as typeof SvelteComponent }
   ]
+
+  // Suppress unused variable warning
+  void taskFilters
+  void getStatusIcon
 </script>
 
 <div class="space-y-4 max-w-2xl bg-[#f5f5f5] min-h-screen p-4">
@@ -410,7 +428,7 @@
                   {#if showStatusSelect === task.id}
                     <select
                       value={task.status}
-                      on:change={(e) => { setStatus(task.id, e.target.value); closeAllSelects(); }}
+                      on:change={(e) => onStatusChange(e, task.id)}
                       on:blur={closeAllSelects}
                       class="text-xs px-2 py-0.5 rounded border {getStatusBadgeClasses(task.status)} bg-transparent cursor-pointer focus:outline-none"
                     >
@@ -429,7 +447,7 @@
                   {#if showPrioritySelect === task.id}
                     <select
                       value={task.priority}
-                      on:change={(e) => { setPriority(task.id, e.target.value); closeAllSelects(); }}
+                      on:change={(e) => onPriorityChange(e, task.id)}
                       on:blur={closeAllSelects}
                       class="text-xs px-2 py-0.5 rounded border {getPriorityBadgeClasses(task.priority)} bg-transparent cursor-pointer focus:outline-none"
                     >

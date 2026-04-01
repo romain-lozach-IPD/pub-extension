@@ -1,5 +1,5 @@
-<script>
-  import { dialogState } from '../stores/dialog.js'
+<script lang="ts">
+  import { dialogState } from '../stores/dialog.ts'
 </script>
 
 {#if $dialogState}

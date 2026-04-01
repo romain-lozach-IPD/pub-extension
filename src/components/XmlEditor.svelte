@@ -1,8 +1,8 @@
-<script>
-  import { settings } from "../stores/settings.js";
-  import { editorData } from "../stores/navigation.js";
-  import { environments } from "../stores/environments.js";
-  import { toastStore } from "../stores/toast.js";
+<script lang="ts">
+  import { settings } from "../stores/settings.ts";
+  import { editorData } from "../stores/navigation.ts";
+  import { environments } from "../stores/environments.ts";
+  import { toastStore } from "../stores/toast.ts";
   import { onMount } from "svelte";
   import { ExternalLink, AlignLeft } from "lucide-svelte";
   import CodeEditor from "./CodeEditor.svelte";
@@ -18,7 +18,6 @@
     }
   }
 
-  // Subscribe to editorData store
   const unsubscribe = editorData.subscribe((data) => {
     if (data.xmlToken) {
       xmlToken = data.xmlToken;
@@ -29,19 +28,17 @@
   onMount(() => {
     settings.load();
     environments.load();
-    // Charger le contenu sauvegardé
     chrome.storage.local.get(["xmlContent", "xmlToken"], (result) => {
-      if (result.xmlToken && !xmlToken) {
-        xmlToken = result.xmlToken;
+      if (result["xmlToken"] && !xmlToken) {
+        xmlToken = result["xmlToken"] as string;
         try {
-          // Just base64 decode, no formatting
           decodedXml = atob(xmlToken);
         } catch (e) {
           decodedXml = "";
         }
       }
-      if (result.xmlContent && !decodedXml) {
-        decodedXml = result.xmlContent;
+      if (result["xmlContent"] && !decodedXml) {
+        decodedXml = result["xmlContent"] as string;
       }
     });
     return () => unsubscribe();
@@ -50,16 +47,14 @@
   async function openConnexionPage() {
     const tab = await chrome.tabs.create({ url: `${apiBase}/connexion` });
 
-    // Wait a bit for the page to load, then inject the token
     setTimeout(async () => {
       try {
         await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: (token) => {
-            const textarea = document.getElementById("xmltoken");
+          target: { tabId: tab.id as number },
+          func: (token: string) => {
+            const textarea = document.getElementById("xmltoken") as HTMLTextAreaElement | null;
             if (textarea) {
               textarea.value = token;
-              // Trigger input event to notify any listeners
               textarea.dispatchEvent(new Event("input", { bubbles: true }));
             }
           },
@@ -75,7 +70,7 @@
     try {
       decodedXml = atob(xmlToken);
     } catch (e) {
-      toastStore.error("Erreur de décodage Base64 : " + e.message);
+      toastStore.error("Erreur de décodage Base64 : " + (e as Error).message);
     }
   }
 
@@ -83,7 +78,7 @@
     try {
       xmlToken = btoa(decodedXml);
     } catch (e) {
-      toastStore.error("Erreur d'encodage Base64 : " + e.message);
+      toastStore.error("Erreur d'encodage Base64 : " + (e as Error).message);
     }
   }
 
@@ -104,28 +99,24 @@
       const formatted = serializer.serializeToString(xmlDoc);
       decodedXml = formatWithIndentation(formatted);
     } catch (e) {
-      toastStore.error("Erreur de formatage XML : " + e.message);
+      toastStore.error("Erreur de formatage XML : " + (e as Error).message);
     }
   }
 
-  function formatWithIndentation(xml) {
+  function formatWithIndentation(xml: string): string {
     let formatted = "";
     let indent = "";
     const tab = "  ";
 
-    // Normalize whitespace between tags
     xml = xml.replace(/>\s*</g, "><");
 
-    // Split by tags while keeping them
     const tokens = xml.split(/(<[^>]+>)/g).filter((token) => token.length > 0);
 
     for (let i = 0; i < tokens.length; i++) {
-      let node = tokens[i];
+      const node = tokens[i];
 
-      // Skip pure whitespace nodes
       if (!node.trim()) continue;
 
-      // Handle text content between tags
       if (!node.startsWith("<")) {
         const text = node.trim();
         if (text) {
@@ -134,42 +125,35 @@
         continue;
       }
 
-      // Handle closing tag - decrease indent before processing
       if (node.match(/^<\//)) {
         indent = indent.substring(tab.length);
         formatted += indent + node + "\n";
         continue;
       }
 
-      // Handle self-closing tag
       if (node.match(/\/>$/)) {
         formatted += indent + node + "\n";
         continue;
       }
 
-      // Handle opening tag
       if (node.match(/^<[^?!\/]/)) {
         formatted += indent + node + "\n";
-        // Increase indent after opening tag (unless it's an empty element)
         if (!node.match(/\/>/)) {
           indent += tab;
         }
         continue;
       }
 
-      // Handle XML declaration and comments
       if (node.match(/^<\?/) || node.match(/^<!--/)) {
         formatted += indent + node + "\n";
         continue;
       }
 
-      // Handle CDATA
       if (node.match(/^<!\[/)) {
         formatted += indent + node + "\n";
         continue;
       }
 
-      // Default: just add the node
       formatted += indent + node + "\n";
     }
 

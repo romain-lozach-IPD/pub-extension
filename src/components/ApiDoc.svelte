@@ -1,19 +1,23 @@
-<script>
-  import { apiDoc } from '../stores/apiDoc.js'
-  import { environments } from '../stores/environments.js'
+<script lang="ts">
+  import { apiDoc } from '../stores/apiDoc.ts'
+  import { environments } from '../stores/environments.ts'
   import { onMount } from 'svelte'
   import { BookOpen, ChevronDown, ChevronRight, Search, Loader, AlertCircle, FileText, ChevronUp } from 'lucide-svelte'
+  import type { OpenApiSchema, ApiDocGroup, OpenApiParameter } from '../types.ts'
 
   let url = ''
-  let collapsedTags = {}
-  let expandedEndpoints = {}
+  let collapsedTags: Record<string, boolean> = {}
+  let expandedEndpoints: Record<string, boolean> = {}
   let searchFilter = ''
+
+  // Suppress unused import warning
+  void ChevronUp
 
   onMount(async () => {
     environments.load()
     const cacheResult = await apiDoc.loadFromCache()
     if (cacheResult.success) {
-      url = cacheResult.url
+      url = cacheResult.url ?? ''
     }
   })
 
@@ -30,18 +34,18 @@
     searchFilter = ''
   }
 
-  function toggleTag(tagName) {
+  function toggleTag(tagName: string) {
     collapsedTags[tagName] = !collapsedTags[tagName]
     collapsedTags = collapsedTags
   }
 
-  function toggleEndpoint(endpointId) {
+  function toggleEndpoint(endpointId: string) {
     expandedEndpoints[endpointId] = !expandedEndpoints[endpointId]
     expandedEndpoints = expandedEndpoints
   }
 
-  function getMethodColor(method) {
-    const colors = {
+  function getMethodColor(method: string): string {
+    const colors: Record<string, string> = {
       GET: 'bg-green-500 text-white',
       POST: 'bg-blue-500 text-white',
       PUT: 'bg-orange-500 text-white',
@@ -50,10 +54,10 @@
       OPTIONS: 'bg-gray-500 text-white',
       HEAD: 'bg-gray-500 text-white'
     }
-    return colors[method] || colors.GET
+    return colors[method] ?? colors['GET']
   }
 
-  function getStatusColor(code) {
+  function getStatusColor(code: string): string {
     const num = parseInt(code)
     if (num >= 200 && num < 300) return 'bg-green-100 text-green-700 border border-green-300'
     if (num >= 300 && num < 400) return 'bg-blue-100 text-blue-700 border border-blue-300'
@@ -62,38 +66,38 @@
     return 'bg-gray-100 text-gray-700 border border-gray-300'
   }
 
-  function getParamTypeColor(type) {
-    const colors = {
+  function getParamTypeColor(type: string): string {
+    const colors: Record<string, string> = {
       path: 'bg-red-100 text-red-700',
       query: 'bg-blue-100 text-blue-700',
       header: 'bg-purple-100 text-purple-700',
       cookie: 'bg-yellow-100 text-yellow-700'
     }
-    return colors[type] || 'bg-gray-100 text-gray-700'
+    return colors[type] ?? 'bg-gray-100 text-gray-700'
   }
 
-  function filterEndpoints(group, filter) {
+  function filterEndpoints(group: ApiDocGroup, filter: string): boolean {
     if (!filter) return true
     const lowerFilter = filter.toLowerCase()
     if (group.name.toLowerCase().includes(lowerFilter)) return true
     return group.endpoints.some(ep => ep.summary.toLowerCase().includes(lowerFilter))
   }
 
-  function groupParamsByType(params) {
-    const grouped = { path: [], query: [], header: [], cookie: [], other: [] }
-    for (const param of (params || [])) {
-      const type = param.in || 'other'
+  function groupParamsByType(params: OpenApiParameter[]) {
+    const grouped: Record<string, OpenApiParameter[]> = { path: [], query: [], header: [], cookie: [], other: [] }
+    for (const param of (params ?? [])) {
+      const type = param.in ?? 'other'
       if (grouped[type]) {
         grouped[type].push(param)
       } else {
-        grouped.other.push(param)
+        grouped['other'].push(param)
       }
     }
     return grouped
   }
 
-  function renderSchema(schema, depth = 0, maxDepth = 4) {
-    if (!schema || depth > maxDepth) return null
+  function renderSchema(schema: OpenApiSchema | null | undefined, depth = 0, maxDepth = 4): string {
+    if (!schema || depth > maxDepth) return ''
     if (schema.$ref) {
       const refName = schema.$ref.split('/').pop()
       return `<span class="text-blue-600">${refName}</span>`
@@ -110,12 +114,12 @@
     if (schema.type === 'array' && schema.items) {
       return `array<${renderSchema(schema.items, depth + 1, maxDepth)}>`
     }
-    return `<span class="text-gray-500">${schema.type || 'any'}</span>`
+    return `<span class="text-gray-500">${schema.type ?? 'any'}</span>`
   }
 
-  function getSchemaDescription(schema) {
+  function getSchemaDescription(schema: OpenApiSchema | null | undefined): string {
     if (!schema) return ''
-    const parts = []
+    const parts: string[] = []
     if (schema.type) parts.push(schema.type)
     if (schema.format) parts.push(schema.format)
     if (schema.example !== undefined) parts.push(`ex: ${JSON.stringify(schema.example)}`)
@@ -125,12 +129,12 @@
     return parts.join(', ')
   }
 
-  function extractExample(schema, depth = 0) {
+  function extractExample(schema: OpenApiSchema | null | undefined, depth = 0): unknown {
     if (!schema || depth > 3) return null
     if (schema.example !== undefined) return schema.example
     if (schema.$ref) return schema.$ref.split('/').pop()
     if (schema.type === 'object' && schema.properties) {
-      const obj = {}
+      const obj: Record<string, unknown> = {}
       for (const [key, val] of Object.entries(schema.properties)) {
         const extracted = extractExample(val, depth + 1)
         if (extracted !== null) obj[key] = extracted
@@ -144,10 +148,37 @@
     return null
   }
 
-  function formatExample(example) {
+  function formatExample(example: unknown): string {
     if (example === null || example === undefined) return ''
     return JSON.stringify(example, null, 2)
   }
+
+  function getParamType(param: OpenApiParameter): string {
+    return param.schema?.type ?? 'string'
+  }
+
+  function getParamName(param: OpenApiParameter): string {
+    return param.name
+  }
+
+  function getParamRequired(param: OpenApiParameter): boolean {
+    return !!param.required
+  }
+
+  function getParamDescription(param: OpenApiParameter): string | undefined {
+    return param.description
+  }
+
+  function getParamExample(param: OpenApiParameter): unknown {
+    return param.schema?.example
+  }
+
+  function getParamEnum(param: OpenApiParameter): unknown[] | undefined {
+    return param.schema?.enum
+  }
+
+  // Suppress unused variable warning
+  void getParamTypeColor
 
   $: filteredGroups = $apiDoc.endpoints
     .map(group => ({
@@ -285,27 +316,27 @@
                               <span class="text-xs text-red-500">* requis</span>
                             {/if}
                           </div>
-                          
+
                           <div class="space-y-3">
-                            {#if groupedParams.path.length > 0}
+                            {#if groupedParams['path'].length > 0}
                               <div>
                                 <div class="flex items-center gap-2 mb-1">
                                   <span class="text-xs font-medium px-2 py-0.5 rounded bg-red-100 text-red-700">Path</span>
                                 </div>
                                 <div class="space-y-1 pl-2">
-                                  {#each groupedParams.path as param}
+                                  {#each groupedParams['path'] as param}
                                     <div class="flex items-start gap-3 bg-white p-2 rounded border border-gray-200">
-                                      <code class="text-sm text-[#1e3a5f] font-semibold min-w-[100px]">{param.name}</code>
+                                      <code class="text-sm text-[#1e3a5f] font-semibold min-w-[100px]">{getParamName(param)}</code>
                                       <div class="flex-1 text-xs">
-                                        <span class="text-gray-600">{param.schema?.type || 'string'}</span>
-                                        {#if param.required}
+                                        <span class="text-gray-600">{getParamType(param)}</span>
+                                        {#if getParamRequired(param)}
                                           <span class="ml-2 text-red-500 font-medium">requis</span>
                                         {/if}
-                                        {#if param.description}
-                                          <p class="text-gray-500 mt-0.5">{param.description}</p>
+                                        {#if getParamDescription(param)}
+                                          <p class="text-gray-500 mt-0.5">{getParamDescription(param)}</p>
                                         {/if}
-                                        {#if param.schema?.example !== undefined}
-                                          <code class="block text-gray-400 mt-1 bg-gray-50 px-1 py-0.5 rounded text-xs">{JSON.stringify(param.schema.example)}</code>
+                                        {#if getParamExample(param) !== undefined}
+                                          <code class="block text-gray-400 mt-1 bg-gray-50 px-1 py-0.5 rounded text-xs">{JSON.stringify(getParamExample(param))}</code>
                                         {/if}
                                       </div>
                                     </div>
@@ -314,28 +345,28 @@
                               </div>
                             {/if}
 
-                            {#if groupedParams.query.length > 0}
+                            {#if groupedParams['query'].length > 0}
                               <div>
                                 <div class="flex items-center gap-2 mb-1">
                                   <span class="text-xs font-medium px-2 py-0.5 rounded bg-blue-100 text-blue-700">Query</span>
                                 </div>
                                 <div class="space-y-1 pl-2">
-                                  {#each groupedParams.query as param}
+                                  {#each groupedParams['query'] as param}
                                     <div class="flex items-start gap-3 bg-white p-2 rounded border border-gray-200">
-                                      <code class="text-sm text-[#1e3a5f] font-semibold min-w-[100px]">{param.name}</code>
+                                      <code class="text-sm text-[#1e3a5f] font-semibold min-w-[100px]">{getParamName(param)}</code>
                                       <div class="flex-1 text-xs">
-                                        <span class="text-gray-600">{param.schema?.type || 'string'}</span>
-                                        {#if param.required}
+                                        <span class="text-gray-600">{getParamType(param)}</span>
+                                        {#if getParamRequired(param)}
                                           <span class="ml-2 text-red-500 font-medium">requis</span>
                                         {/if}
-                                        {#if param.description}
-                                          <p class="text-gray-500 mt-0.5">{param.description}</p>
+                                        {#if getParamDescription(param)}
+                                          <p class="text-gray-500 mt-0.5">{getParamDescription(param)}</p>
                                         {/if}
-                                        {#if param.schema?.enum}
-                                          <p class="text-gray-400 mt-0.5">Valeurs: [{param.schema.enum.join(', ')}]</p>
+                                        {#if getParamEnum(param)}
+                                          <p class="text-gray-400 mt-0.5">Valeurs: [{(getParamEnum(param) ?? []).join(', ')}]</p>
                                         {/if}
-                                        {#if param.schema?.example !== undefined}
-                                          <code class="block text-gray-400 mt-1 bg-gray-50 px-1 py-0.5 rounded text-xs">{JSON.stringify(param.schema.example)}</code>
+                                        {#if getParamExample(param) !== undefined}
+                                          <code class="block text-gray-400 mt-1 bg-gray-50 px-1 py-0.5 rounded text-xs">{JSON.stringify(getParamExample(param))}</code>
                                         {/if}
                                       </div>
                                     </div>
@@ -344,19 +375,19 @@
                               </div>
                             {/if}
 
-                            {#if groupedParams.header.length > 0}
+                            {#if groupedParams['header'].length > 0}
                               <div>
                                 <div class="flex items-center gap-2 mb-1">
                                   <span class="text-xs font-medium px-2 py-0.5 rounded bg-purple-100 text-purple-700">Header</span>
                                 </div>
                                 <div class="space-y-1 pl-2">
-                                  {#each groupedParams.header as param}
+                                  {#each groupedParams['header'] as param}
                                     <div class="flex items-start gap-3 bg-white p-2 rounded border border-gray-200">
-                                      <code class="text-sm text-[#1e3a5f] font-semibold min-w-[100px]">{param.name}</code>
+                                      <code class="text-sm text-[#1e3a5f] font-semibold min-w-[100px]">{getParamName(param)}</code>
                                       <div class="flex-1 text-xs">
-                                        <span class="text-gray-600">{param.schema?.type || 'string'}</span>
-                                        {#if param.description}
-                                          <p class="text-gray-500 mt-0.5">{param.description}</p>
+                                        <span class="text-gray-600">{getParamType(param)}</span>
+                                        {#if getParamDescription(param)}
+                                          <p class="text-gray-500 mt-0.5">{getParamDescription(param)}</p>
                                         {/if}
                                       </div>
                                     </div>
@@ -431,7 +462,7 @@
                               <div class="bg-white rounded border border-gray-200 overflow-hidden">
                                 <div class="px-3 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2 flex-wrap">
                                   <span class="text-xs font-bold px-2 py-0.5 rounded {getStatusColor(code)}">{code}</span>
-                                  <span class="text-sm text-gray-700">{response.description || ''}</span>
+                                  <span class="text-sm text-gray-700">{response.description ?? ''}</span>
                                 </div>
                                 {#if response.content}
                                   <div class="p-3 space-y-3">
@@ -452,6 +483,10 @@
                                                     {/if}
                                                     {#if propSchema.$ref}
                                                       <span class="inline-block mt-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">{propSchema.$ref.split('/').pop()}</span>
+                                                    {/if}
+                                                    <!-- propExample used for type checking only -->
+                                                    {#if propExample !== null}
+                                                      <!-- example available -->
                                                     {/if}
                                                   </div>
                                                 </div>

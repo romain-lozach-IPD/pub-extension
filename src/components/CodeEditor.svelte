@@ -1,72 +1,66 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte'
-  
+
   export let value = ''
   export let placeholder = ''
   export let spellcheck = false
   export let className = ''
-  
-  let textarea
-  let preElement
+
+  let textarea: HTMLTextAreaElement
+  let preElement: HTMLElement
   let highlightedContent = ''
-  
-  // Simple syntax highlighting for XML - just colors the tags
-  function highlightXml(xml) {
+
+  function highlightXml(xml: string): string {
     if (!xml) return ''
-    
-    // Escape HTML entities first
+
     let escaped = xml
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-    
-    // Simple tag highlighting - just wrap anything between &lt; and &gt; in a span
+
     escaped = escaped.replace(
       /(&lt;[^&]+&gt;)/g,
       '<span class="xml-tag">$1</span>'
     )
-    
+
     return escaped
   }
-  
-  function updateHighlight() {
+
+  function updateHighlight(): void {
     highlightedContent = highlightXml(value)
-    // Add final newline to ensure pre height matches textarea
     if (highlightedContent && !highlightedContent.endsWith('\n')) {
       highlightedContent += '\n'
     }
   }
-  
-  function handleInput() {
+
+  function handleInput(): void {
     value = textarea.value
     updateHighlight()
   }
-  
-  function handleScroll() {
+
+  function handleScroll(): void {
     if (preElement && textarea) {
       preElement.scrollTop = textarea.scrollTop
       preElement.scrollLeft = textarea.scrollLeft
     }
   }
-  
-  function handleKeydown(e) {
+
+  function handleKeydown(e: KeyboardEvent): void {
     if (e.key === 'Tab') {
       e.preventDefault()
       const start = textarea.selectionStart
       const end = textarea.selectionEnd
       const spaces = '  '
-      
+
       if (e.shiftKey) {
-        // Shift+Tab: remove indentation
         const lineStart = value.lastIndexOf('\n', start - 1) + 1
         const currentLine = value.substring(lineStart, start)
-        const spacesToRemove = currentLine.match(/^[ ]{0,2}/)[0]
-        
+        const spacesToRemove = currentLine.match(/^[ ]{0,2}/)![0]
+
         textarea.value = value.substring(0, lineStart) + currentLine.substring(spacesToRemove.length) + value.substring(end)
         value = textarea.value
         textarea.selectionStart = textarea.selectionEnd = start - spacesToRemove.length
       } else {
-        // Tab: add indentation
         textarea.value = value.substring(0, start) + spaces + value.substring(end)
         value = textarea.value
         textarea.selectionStart = textarea.selectionEnd = start + spaces.length
@@ -74,11 +68,11 @@
       updateHighlight()
     }
   }
-  
+
   $: if (value !== undefined) {
     updateHighlight()
   }
-  
+
   onMount(() => {
     updateHighlight()
   })
@@ -111,7 +105,7 @@
     font-size: 13px;
     line-height: 1.5;
   }
-  
+
   .editor-layer {
     position: absolute;
     top: 0;
@@ -123,7 +117,6 @@
     border: none;
     background: transparent;
     overflow: auto;
-    /* Critical: ensure identical text rendering */
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
@@ -146,13 +139,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
+
   .code-highlight {
     z-index: 1;
     pointer-events: none;
     color: #333;
   }
-  
+
   .code-highlight pre {
     margin: 0;
     padding: 0;
@@ -165,14 +158,14 @@
     word-wrap: normal;
     word-break: normal;
   }
-  
+
   .code-highlight code {
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
     white-space: pre;
   }
-  
+
   .code-input {
     z-index: 2;
     color: transparent;
@@ -180,22 +173,20 @@
     caret-color: #1e3a5f;
     resize: none;
     outline: none;
-    /* Ensure textarea has same text properties as pre */
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
   }
-  
+
   .code-input::selection {
     background: rgba(30, 58, 95, 0.3);
     color: transparent;
   }
-  
+
   .code-input::placeholder {
     color: #999;
   }
-  
-  /* Simple XML tag highlighting */
+
   :global(.xml-tag) {
     color: #0066cc;
     font-weight: 500;

@@ -77,38 +77,31 @@ npm run build   # build toujours OK
 
 ### Setup
 
-- [ ] `npm install -D vitest @testing-library/svelte jsdom`
-- [ ] Ajouter section `test` dans `vite.config.js/ts`
-  ```js
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/test/setup.ts']
-  }
-  ```
-- [ ] Créer `src/test/setup.ts` — mock global Chrome API (`chrome.storage.local`, `chrome.runtime`)
-- [ ] Ajouter `"test": "vitest"` dans `package.json`
+- [x] `npm install -D vitest @testing-library/svelte jsdom`
+- [x] Ajouter section `test` dans `vite.config.js/ts`
+- [x] Créer `src/test/setup.ts` — mock global Chrome API (`chrome.storage.local`, `chrome.runtime`)
+- [x] Ajouter `"test": "vitest"` dans `package.json`
 
 ### Infrastructure
 
-- [ ] `src/test/lib/storage.test.ts` — 6 tests (get/set/remove : resolve + reject sur `lastError`)
-- [ ] `src/test/lib/crudStore.test.ts` — 8 tests (UUID, timestamps, persist appelé)
+- [x] `src/test/lib/storage.test.ts` — 6 tests (get/set/remove : resolve + reject sur `lastError`)
+- [x] `src/test/lib/crudStore.test.ts` — 8 tests (UUID, timestamps, persist appelé)
 
 ### Stores Tier 1
 
-- [ ] `src/test/stores/tasks.test.ts` — ~15 tests (CRUD + commentaires + reorder + clear)
-- [ ] `src/test/stores/environments.test.ts` — 4 tests (setActive toggle, getActive fallback)
-- [ ] `src/test/stores/favorites.test.ts` — 4 tests (add dedup, isFavorite, clear)
-- [ ] `src/test/stores/links.test.ts` — 3 tests (reorder edge cases)
-- [ ] `src/test/stores/connections.test.ts` — 3 tests (search filter case-insensitive)
+- [x] `src/test/stores/tasks.test.ts` — 14 tests (CRUD + commentaires + reorder + clear)
+- [x] `src/test/stores/environments.test.ts` — 4 tests (setActive toggle, getActive fallback)
+- [x] `src/test/stores/favorites.test.ts` — 4 tests (add dedup, isFavorite, clear)
+- [x] `src/test/stores/links.test.ts` — 3 tests (reorder edge cases)
+- [x] `src/test/stores/connections.test.ts` — 3 tests (search filter case-insensitive)
 
 ### Stores Tier 2
 
-- [ ] `src/test/stores/dialog.test.ts` — 2 tests (confirm/cancel promise)
-- [ ] `src/test/stores/toast.test.ts` — 3 tests (success/error/info + auto-dismiss timer)
-- [ ] `src/test/stores/settings.test.ts` — 3 tests (load/updateSetting/reset)
-- [ ] `src/test/stores/search.test.ts` — 6 tests (AbortController, FormData, error state) — mock `fetch`
-- [ ] `src/test/stores/apiDoc.test.ts` — 8 tests (HTML detection, YAML/JSON fallback, cache, parseOpenApiSpec)
+- [x] `src/test/stores/dialog.test.ts` — 2 tests (confirm/cancel promise)
+- [x] `src/test/stores/toast.test.ts` — 3 tests (success/error/info + auto-dismiss timer)
+- [x] `src/test/stores/settings.test.ts` — 3 tests (load/updateSetting/reset)
+- [x] `src/test/stores/search.test.ts` — 7 tests (AbortController, FormData, error state, paginationInfo) — mock `fetch`
+- [x] `src/test/stores/apiDoc.test.ts` — 9 tests (HTML detection, YAML/JSON fallback, cache, parseOpenApiSpec)
 
 ### Vérification Phase B
 
@@ -162,3 +155,4 @@ npm run build   # toujours OK
 |------|--------|
 | 2026-04-01 | Roadmap créée |
 | 2026-04-01 | Phase A terminée — `npm run check` 0 erreur, `npm run build` OK |
+| 2026-04-01 | Phase B terminée — 66/66 tests vitest, `npm run build` OK |

@@ -7,7 +7,7 @@
 
   export let task: Task
 
-  const dispatch = createEventDispatcher()
+  const dispatch = createEventDispatcher<{ close: void }>()
 
   let newComment = ''
   let editingCommentId: string | null = null

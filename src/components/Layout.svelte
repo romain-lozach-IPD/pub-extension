@@ -10,7 +10,7 @@
 <div class="flex h-screen bg-[#f5f5f5]">
   <!-- Menu vertical -->
   <nav class="w-16 bg-white border-r border-gray-200 flex flex-col items-center py-4 gap-2 flex-shrink-0">
-    {#each pages as page}
+    {#each pages as page (page.id)}
       <button
         on:click={() => currentPage.set(page.id)}
         class="w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-200

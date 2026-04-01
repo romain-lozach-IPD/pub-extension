@@ -35,7 +35,7 @@ describe('searchStore.clear', () => {
     const s = get(searchStore)
     expect(s.results).toHaveLength(0)
     expect(s.meta).toBeNull()
-    expect(s.loading).toBe(false)
+    expect(s.isLoading).toBe(false)
     expect(s.error).toBeNull()
   })
 })
@@ -48,7 +48,7 @@ describe('searchStore.search', () => {
     await searchStore.search(emptyFilters)
     const s = get(searchStore)
     expect(s.results).toHaveLength(1)
-    expect(s.loading).toBe(false)
+    expect(s.isLoading).toBe(false)
     expect(s.error).toBeNull()
   })
 
@@ -61,7 +61,7 @@ describe('searchStore.search', () => {
       // attendu
     }
     expect(get(searchStore).error).toContain('500')
-    expect(get(searchStore).loading).toBe(false)
+    expect(get(searchStore).isLoading).toBe(false)
   })
 
   it('utilise l\'URL de l\'env actif', async () => {

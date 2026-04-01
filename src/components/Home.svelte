@@ -196,10 +196,10 @@
         </button>
         <button
           on:click={handleSearch}
-          disabled={$searchStore.loading}
+          disabled={$searchStore.isLoading}
           class="flex-1 bg-[#1e3a5f] hover:bg-[#2a4a73] disabled:bg-blue-300 text-white py-2 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
         >
-          {#if $searchStore.loading}
+          {#if $searchStore.isLoading}
             <Loader size={16} class="animate-spin" />
             Recherche...
           {:else}
@@ -315,7 +315,7 @@
           <div class="flex justify-between items-center">
             <button
               on:click={() => changePage(currentPage - 1)}
-              disabled={!$paginationInfo.hasPrevious || $searchStore.loading}
+              disabled={!$paginationInfo.hasPrevious || $searchStore.isLoading}
               class="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               &laquo; Précédent
@@ -327,7 +327,7 @@
 
             <button
               on:click={() => changePage(currentPage + 1)}
-              disabled={!$paginationInfo.hasNext || $searchStore.loading}
+              disabled={!$paginationInfo.hasNext || $searchStore.isLoading}
               class="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               Suivant &raquo;
@@ -340,7 +340,7 @@
         </div>
       {/if}
     </div>
-  {:else if !$searchStore.loading && !$searchStore.error && $searchStore.meta !== null}
+  {:else if !$searchStore.isLoading && !$searchStore.error && $searchStore.meta !== null}
     <div class="text-center py-8 text-gray-500 bg-white rounded border border-gray-200">
       <div class="flex justify-center mb-2">
         <Search size={40} class="text-gray-400" />

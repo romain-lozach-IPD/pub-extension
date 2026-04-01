@@ -125,10 +125,10 @@ npm test -- --coverage      # rapport de couverture
 
 ### Actions
 
-- [ ] `npm install -D eslint @typescript-eslint/eslint-plugin eslint-plugin-svelte`
-- [ ] Créer `.eslintrc.json` avec règle `@typescript-eslint/naming-convention`
-- [ ] `src/stores/search.js/ts` — renommer `loading` → `isLoading` + mettre à jour `Home.svelte`
-- [ ] `src/stores/apiDoc.js/ts` — endpoint IDs → `crypto.randomUUID()`
+- [x] `npm install -D eslint @typescript-eslint/eslint-plugin eslint-plugin-svelte`
+- [x] Créer `eslint.config.js` avec règle `@typescript-eslint/naming-convention`
+- [x] `src/stores/search.ts` — renommer `loading` → `isLoading` + mettre à jour `Home.svelte`
+- [x] `src/stores/apiDoc.ts` — endpoint IDs → `crypto.randomUUID()`
 
 ### Vérification Phase C
 
@@ -155,4 +155,6 @@ npm run build   # toujours OK
 |------|--------|
 | 2026-04-01 | Roadmap créée |
 | 2026-04-01 | Phase A terminée — `npm run check` 0 erreur, `npm run build` OK |
+| 2026-04-01 | Phase B terminée — 66/66 tests vitest, `npm run build` OK |
+| 2026-04-01 | Phase C terminée — `npm run lint` 0 erreur, `loading` → `isLoading`, endpoint IDs → randomUUID |
 | 2026-04-01 | Phase B terminée — 66/66 tests vitest, `npm run build` OK |

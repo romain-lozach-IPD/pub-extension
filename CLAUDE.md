@@ -10,6 +10,7 @@ npm run build          # build prod → dist/
 npm run check          # svelte-check TypeScript (doit retourner 0 erreur)
 npm run test           # vitest (66 tests, doit tous passer)
 npm run test:coverage  # couverture de code
+npm run lint           # ESLint (0 erreur attendu)
 ```
 
 ## Structure
@@ -127,4 +128,4 @@ it('load depuis storage', async () => {
 
 - **Phase A — TypeScript** : ✅ terminée
 - **Phase B — Vitest** : ✅ terminée (66 tests)
-- **Phase C — Nommage** : à faire (`loading` → `isLoading` dans search, endpoint IDs → randomUUID)
+- **Phase C — Nommage** : ✅ terminée (`loading` → `isLoading`, endpoint IDs → randomUUID, ESLint configuré)

@@ -43,20 +43,29 @@ function createSearchStore() {
     error: null
   })
 
+  let currentAbortController = null
+
   return {
     subscribe,
     set,
     update,
-    
+
     // Fonction de recherche
     search: async (filtersData, page = 1) => {
+      // Annuler la requête précédente si elle est encore en cours
+      if (currentAbortController) {
+        currentAbortController.abort()
+      }
+      currentAbortController = new AbortController()
+      const signal = currentAbortController.signal
+
       update(s => ({ ...s, loading: true, error: null }))
-      
+
       try {
         // Récupérer l'environnement actif
         const activeEnv = environments.getActive()
         const apiBase = activeEnv?.url_api || 'http://localhost'
-        
+
         // Construction du FormData avec syntaxe Spatie Query Builder
         const formData = new FormData()
         Object.entries(filtersData).forEach(([key, value]) => {
@@ -74,7 +83,7 @@ function createSearchStore() {
         const headers = {
           'Accept': 'application/json'
         }
-        
+
         if (activeEnv?.login && activeEnv?.password) {
           const credentials = btoa(`${activeEnv.login}:${activeEnv.password}`)
           headers['Authorization'] = `Basic ${credentials}`
@@ -83,7 +92,8 @@ function createSearchStore() {
         const response = await fetch(`${apiBase}/api/v1/extension/get-token?page=${page}`, {
           method: 'POST',
           headers: headers,
-          body: formData
+          body: formData,
+          signal
         })
 
         if (!response.ok) {
@@ -91,7 +101,7 @@ function createSearchStore() {
         }
 
         const data = await response.json()
-        
+
         update(s => ({
           ...s,
           results: data.data || [],
@@ -102,6 +112,10 @@ function createSearchStore() {
 
         return data
       } catch (err) {
+        // Ignorer silencieusement les erreurs d'annulation (requête remplacée)
+        if (err.name === 'AbortError') {
+          return
+        }
         update(s => ({
           ...s,
           results: [],

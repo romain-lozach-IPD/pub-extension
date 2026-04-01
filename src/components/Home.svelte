@@ -11,13 +11,12 @@
   let hasSearched = false
   let frontUrl = 'http://localhost'
 
-  // Subscribe to environments to get active environment
-  environments.subscribe(envs => {
-    const activeEnv = envs.find(env => env.isActive) || envs[0]
+  $: {
+    const activeEnv = $environments.find(env => env.isActive) || $environments[0]
     if (activeEnv?.url_front) {
-      frontUrl = activeEnv.url_front.replace(/\/$/, '') // Remove trailing slash
+      frontUrl = activeEnv.url_front.replace(/\/$/, '')
     }
-  })
+  }
 
   onMount(() => {
     // Charger les favoris et environnements au démarrage

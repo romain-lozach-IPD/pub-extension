@@ -1,57 +1,17 @@
-import { writable } from 'svelte/store'
-import { get, set } from '../lib/storage.js'
+import { createCrudStore } from '../lib/crudStore.js'
 
-function createLinksStore() {
-  const { subscribe, set: setStore, update } = writable([])
+const base = createCrudStore('links')
 
-  return {
-    subscribe,
-    load: async () => {
-      const links = await get('links') || []
-      setStore(links)
-    },
-    add: async (link) => {
-      const newLink = {
-        ...link,
-        id: Date.now(),
-        createdAt: new Date().toISOString()
-      }
-      update(links => {
-        const newLinks = [...links, newLink]
-        set('links', newLinks)
-        return newLinks
-      })
-    },
-    update: async (id, updates) => {
-      update(links => {
-        const newLinks = links.map(l => 
-          l.id === id ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l
-        )
-        set('links', newLinks)
-        return newLinks
-      })
-    },
-    remove: async (id) => {
-      update(links => {
-        const newLinks = links.filter(l => l.id !== id)
-        set('links', newLinks)
-        return newLinks
-      })
-    },
-    reorder: async (draggedId, targetIndex) => {
-      update(links => {
-        const draggedIndex = links.findIndex(l => l.id === draggedId)
-        if (draggedIndex === -1 || draggedIndex === targetIndex) return links
-        
-        const newLinks = [...links]
-        const [draggedItem] = newLinks.splice(draggedIndex, 1)
-        newLinks.splice(targetIndex, 0, draggedItem)
-        
-        set('links', newLinks)
-        return newLinks
-      })
-    }
+export const links = {
+  ...base,
+  reorder: (draggedId, targetIndex) => {
+    base._mutate(items => {
+      const draggedIndex = items.findIndex(l => l.id === draggedId)
+      if (draggedIndex === -1 || draggedIndex === targetIndex) return items
+      const next = [...items]
+      const [item] = next.splice(draggedIndex, 1)
+      next.splice(targetIndex, 0, item)
+      return next
+    })
   }
 }
-
-export const links = createLinksStore()

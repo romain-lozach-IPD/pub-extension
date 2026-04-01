@@ -10,7 +10,7 @@
     "128": "icon128.png"
   },
   "permissions": ["sidePanel", "storage", "scripting", "activeTab"],
-  "host_permissions": ["http://localhost/*"],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_title": "Ouvrir le panneau latéral"
   },

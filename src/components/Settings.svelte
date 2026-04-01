@@ -4,6 +4,8 @@
   import { tasks } from '../stores/tasks.js'
   import { environments } from '../stores/environments.js'
   import { favorites } from '../stores/favorites.js'
+  import { toastStore } from '../stores/toast.js'
+  import { confirm } from '../stores/dialog.js'
   import { onMount } from 'svelte'
   import { AlertTriangle, Plus, Edit2, Trash2, Check, X, Server, Upload, HardDrive } from 'lucide-svelte'
 
@@ -77,53 +79,79 @@
     URL.revokeObjectURL(url)
   }
 
+  function isValidUrl(url) {
+    if (!url) return true // champ optionnel
+    try { new URL(url); return true } catch { return false }
+  }
+
+  function validateImportShape(data) {
+    if (!data || typeof data !== 'object') return 'Format de fichier invalide'
+
+    if (data.environments !== undefined) {
+      if (!Array.isArray(data.environments)) return 'Champ "environments" invalide'
+      for (const env of data.environments) {
+        if (!env || typeof env.name !== 'string' || typeof env.url_api !== 'string') {
+          return 'Un environnement est mal formé (name et url_api requis)'
+        }
+      }
+    }
+
+    if (data.links !== undefined) {
+      if (!Array.isArray(data.links)) return 'Champ "links" invalide'
+      for (const link of data.links) {
+        if (!link || typeof link.name !== 'string' || typeof link.url !== 'string') {
+          return 'Un lien est mal formé (name et url requis)'
+        }
+      }
+    }
+
+    if (data.tasks !== undefined) {
+      if (!Array.isArray(data.tasks)) return 'Champ "tasks" invalide'
+      for (const task of data.tasks) {
+        if (!task || typeof task.title !== 'string') {
+          return 'Une tâche est mal formée (title requis)'
+        }
+      }
+    }
+
+    if (data.favorites !== undefined && !Array.isArray(data.favorites)) {
+      return 'Champ "favorites" invalide'
+    }
+
+    return null
+  }
+
   async function importData(file) {
     try {
       const text = await file.text()
       const data = JSON.parse(text)
-      
-      // Valider la structure minimale
-      if (!data || typeof data !== 'object') {
-        alert('Format de fichier invalide')
+
+      const validationError = validateImportShape(data)
+      if (validationError) {
+        toastStore.error(validationError)
         return
-      }
-      
-      // Confirmer avant d'écraser les données existantes
-      if (!confirm('Cette action va remplacer vos données actuelles (favoris, environnements et liens). Continuer ?')) {
-        return
-      }
-      
-      // Préparer les données à importer
-      const importData = {}
-      
-      if (data.favorites && Array.isArray(data.favorites)) {
-        importData.favorites = data.favorites
-      }
-      
-      if (data.environments && Array.isArray(data.environments)) {
-        importData.environments = data.environments
-      }
-      
-      if (data.links && Array.isArray(data.links)) {
-        importData.links = data.links
       }
 
-      if (data.tasks && Array.isArray(data.tasks)) {
-        importData.tasks = data.tasks
+      if (!await confirm('Cette action va remplacer vos données actuelles (favoris, environnements et liens). Continuer ?')) {
+        return
       }
-      
-      // Sauvegarder dans le storage
-      await chrome.storage.local.set(importData)
-      
-      // Recharger les stores
+
+      const importPayload = {}
+      if (data.favorites) importPayload.favorites = data.favorites
+      if (data.environments) importPayload.environments = data.environments
+      if (data.links) importPayload.links = data.links
+      if (data.tasks) importPayload.tasks = data.tasks
+
+      await chrome.storage.local.set(importPayload)
+
       await favorites.load()
       await environments.load()
       await links.load()
       await tasks.load()
-      
-      alert('Données importées avec succès !')
+
+      toastStore.success('Données importées avec succès !')
     } catch (e) {
-      alert('Erreur lors de l\'import : ' + e.message)
+      toastStore.error('Erreur lors de l\'import : ' + e.message)
     }
   }
 
@@ -143,7 +171,7 @@
       environments.load()
       tasks.load()
       showResetConfirm = false
-      alert('Toutes les données ont été effacées')
+      toastStore.info('Toutes les données ont été effacées')
     })
   }
 
@@ -180,8 +208,23 @@
   }
 
   async function saveEnvironment() {
-    if (!envFormData.name || !envFormData.url_api) {
-      alert('Le nom et l\'URL API sont obligatoires')
+    if (!envFormData.name.trim() || !envFormData.url_api.trim()) {
+      toastStore.error('Le nom et l\'URL API sont obligatoires')
+      return
+    }
+
+    if (!isValidUrl(envFormData.url_api)) {
+      toastStore.error('URL API invalide')
+      return
+    }
+
+    if (!isValidUrl(envFormData.url_front)) {
+      toastStore.error('URL Front invalide')
+      return
+    }
+
+    if (!isValidUrl(envFormData.url_opensapi_doc)) {
+      toastStore.error('URL Documentation invalide')
       return
     }
 
@@ -195,7 +238,7 @@
   }
 
   async function deleteEnvironment(id) {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cet environnement ?')) {
+    if (await confirm('Êtes-vous sûr de vouloir supprimer cet environnement ?')) {
       await environments.remove(id)
     }
   }
@@ -283,13 +326,17 @@
 
               <div>
                 <label for="env-password" class="block text-sm text-gray-600 mb-1">Mot de passe</label>
-                <input 
+                <input
                   id="env-password"
-                  type="password" 
+                  type="password"
                   bind:value={envFormData.password}
                   placeholder="Mot de passe"
                   class="w-full p-2 border border-gray-300 rounded text-sm focus:border-[#1e3a5f] outline-none"
                 />
+                <p class="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                  <AlertTriangle size={12} />
+                  Stocké en clair dans chrome.storage.local
+                </p>
               </div>
             </div>
           </div>

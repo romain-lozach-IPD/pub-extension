@@ -2,6 +2,7 @@
   import { settings } from "../stores/settings.js";
   import { editorData } from "../stores/navigation.js";
   import { environments } from "../stores/environments.js";
+  import { toastStore } from "../stores/toast.js";
   import { onMount } from "svelte";
   import { ExternalLink, AlignLeft } from "lucide-svelte";
   import CodeEditor from "./CodeEditor.svelte";
@@ -10,13 +11,12 @@
   let decodedXml = "";
   let apiBase = "http://localhost";
 
-  // Subscribe to environments to get active environment
-  environments.subscribe((envs) => {
-    const activeEnv = envs.find((env) => env.isActive) || envs[0];
+  $: {
+    const activeEnv = $environments.find((env) => env.isActive) || $environments[0];
     if (activeEnv?.url_api) {
-      apiBase = activeEnv.url_api.replace(/\/$/, ""); // Remove trailing slash
+      apiBase = activeEnv.url_api.replace(/\/$/, "");
     }
-  });
+  }
 
   // Subscribe to editorData store
   const unsubscribe = editorData.subscribe((data) => {
@@ -73,19 +73,17 @@
 
   function decodeToken() {
     try {
-      // Just base64 decode, no formatting
       decodedXml = atob(xmlToken);
     } catch (e) {
-      alert("Erreur de décodage Base64 : " + e.message);
+      toastStore.error("Erreur de décodage Base64 : " + e.message);
     }
   }
 
   function regenerateToken() {
     try {
-      // Encode the XML to base64
       xmlToken = btoa(decodedXml);
     } catch (e) {
-      alert("Erreur d'encodage Base64 : " + e.message);
+      toastStore.error("Erreur d'encodage Base64 : " + e.message);
     }
   }
 
@@ -96,19 +94,17 @@
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(decodedXml, "application/xml");
 
-      // Check for parsing errors
       const parserError = xmlDoc.querySelector("parsererror");
       if (parserError) {
-        alert("XML invalide : impossible de formater");
+        toastStore.error("XML invalide : impossible de formater");
         return;
       }
 
-      // Format with indentation
       const serializer = new XMLSerializer();
       const formatted = serializer.serializeToString(xmlDoc);
       decodedXml = formatWithIndentation(formatted);
     } catch (e) {
-      alert("Erreur de formatage XML : " + e.message);
+      toastStore.error("Erreur de formatage XML : " + e.message);
     }
   }
 

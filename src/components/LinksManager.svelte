@@ -1,6 +1,7 @@
 <script>
   import { links } from '../stores/links.js'
   import { environments } from '../stores/environments.js'
+  import { confirm } from '../stores/dialog.js'
   import { onMount } from 'svelte'
   import { Pencil, Trash2, GripVertical, Plus } from 'lucide-svelte'
 
@@ -90,8 +91,8 @@
     showForm = true
   }
 
-  function remove(id) {
-    if (confirm('Supprimer ce lien ?')) {
+  async function remove(id) {
+    if (await confirm('Supprimer ce lien ?')) {
       links.remove(id)
     }
   }

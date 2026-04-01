@@ -22,7 +22,7 @@ function createTasksStore() {
         const maxOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.order || 0)) : 0
         const newTask = {
           ...task,
-          id: Date.now(),
+          id: crypto.randomUUID(),
           status: task.status || 'todo',
           priority: task.priority || 'medium',
           comments: [],
@@ -31,7 +31,7 @@ function createTasksStore() {
           order: maxOrder + 1
         }
         const newTasks = [...tasks, newTask]
-        set('tasks', newTasks)
+        set('tasks', newTasks).catch(err => console.error('Erreur sauvegarde tasks:', err))
         return newTasks
       })
     },
@@ -43,7 +43,7 @@ function createTasksStore() {
             ? { ...task, ...updates, updatedAt: new Date().toISOString() }
             : task
         )
-        set('tasks', newTasks)
+        set('tasks', newTasks).catch(err => console.error('Erreur sauvegarde tasks:', err))
         return newTasks
       })
     },
@@ -51,7 +51,7 @@ function createTasksStore() {
     remove: async (id) => {
       update(tasks => {
         const newTasks = tasks.filter(task => task.id !== id)
-        set('tasks', newTasks)
+        set('tasks', newTasks).catch(err => console.error('Erreur sauvegarde tasks:', err))
         return newTasks
       })
     },
@@ -63,7 +63,7 @@ function createTasksStore() {
             ? { ...task, status, updatedAt: new Date().toISOString() }
             : task
         )
-        set('tasks', newTasks)
+        set('tasks', newTasks).catch(err => console.error('Erreur sauvegarde tasks:', err))
         return newTasks
       })
     },
@@ -75,7 +75,7 @@ function createTasksStore() {
             ? { ...task, priority, updatedAt: new Date().toISOString() }
             : task
         )
-        set('tasks', newTasks)
+        set('tasks', newTasks).catch(err => console.error('Erreur sauvegarde tasks:', err))
         return newTasks
       })
     },
@@ -94,14 +94,14 @@ function createTasksStore() {
           order: index + 1
         }))
 
-        set('tasks', reorderedTasks)
+        set('tasks', reorderedTasks).catch(err => console.error('Erreur sauvegarde tasks:', err))
         return reorderedTasks
       })
     },
 
     addComment: async (taskId, content) => {
       const newComment = {
-        id: Date.now(),
+        id: crypto.randomUUID(),
         content: content.trim(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -117,7 +117,7 @@ function createTasksStore() {
           }
           return task
         })
-        set('tasks', newTasks)
+        set('tasks', newTasks).catch(err => console.error('Erreur sauvegarde tasks:', err))
         return newTasks
       })
     },
@@ -138,7 +138,7 @@ function createTasksStore() {
           }
           return task
         })
-        set('tasks', newTasks)
+        set('tasks', newTasks).catch(err => console.error('Erreur sauvegarde tasks:', err))
         return newTasks
       })
     },
@@ -155,14 +155,14 @@ function createTasksStore() {
           }
           return task
         })
-        set('tasks', newTasks)
+        set('tasks', newTasks).catch(err => console.error('Erreur sauvegarde tasks:', err))
         return newTasks
       })
     },
 
     clear: () => {
-      set([])
-      set('tasks', [])
+      setStore([])
+      set('tasks', []).catch(err => console.error('Erreur sauvegarde tasks:', err))
     }
   }
 }

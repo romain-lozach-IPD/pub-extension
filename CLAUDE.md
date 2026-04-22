@@ -26,10 +26,29 @@ pub/
 │   ├── app.css
 │   ├── vite-env.d.ts
 │   ├── components/               # PascalCase.svelte
+│   │   ├── Layout.svelte         # Sidebar nav + header + slot contenu
+│   │   ├── Home.svelte           # Recherche de comptes (filtres + résultats + favoris)
+│   │   ├── Tools.svelte          # Page Tools : onglets internes, dernier outil mémorisé
+│   │   ├── XmlEditor.svelte      # Éditeur XML token (Base64)
+│   │   ├── XmlViewer.svelte      # Visualiseur XML (arbre + formaté + recherche)
+│   │   ├── XmlTreeNode.svelte    # Nœud récursif pour XmlViewer
+│   │   ├── JsonViewer.svelte     # Visualiseur JSON (arbre + formaté + recherche)
+│   │   ├── JsonTreeNode.svelte   # Nœud récursif pour JsonViewer
+│   │   ├── MarkdownEditor.svelte # Éditeur Markdown → rendu HTML live
+│   │   ├── Base64Tool.svelte     # Encode/décode Base64 (détection UTF-8/Latin-1 auto)
+│   │   ├── LinksManager.svelte
+│   │   ├── TasksManager.svelte
+│   │   ├── TaskComments.svelte
+│   │   ├── ApiDoc.svelte
+│   │   ├── Settings.svelte
+│   │   ├── CodeEditor.svelte
+│   │   ├── ConfirmDialog.svelte
+│   │   └── Toast.svelte
 │   ├── stores/                   # camelCase.ts
 │   └── lib/
 │       ├── storage.ts            # wrapper chrome.storage.local
-│       └── crudStore.ts          # générique createCrudStore<T>
+│       ├── crudStore.ts          # générique createCrudStore<T>
+│       └── xmlViewerTypes.ts     # Types XmlNodeData + helpers parse/format/search XML
 ├── background.ts                 # Service Worker
 ├── tsconfig.json
 ├── vite.config.js
@@ -41,13 +60,56 @@ pub/
 └── dist/                         # sortie build
 ```
 
+## Navigation
+
+La navigation est gérée par `src/stores/navigation.ts` :
+
+- `currentPage` : store writable du nom de page active
+- `pages[]` : tableau des entrées sidebar (id, label, icône lucide-svelte)
+- `openEditorWithData(xmlToken)` : navigue vers `tools` et active l'onglet XML
+
+Pages disponibles : `home` | `tools` | `links` | `tasks` | `apidoc` | `settings`
+
+### Page Tools
+
+`Tools.svelte` regroupe 5 outils dans un menu d'onglets interne. Le dernier outil actif est mémorisé dans `chrome.storage.local` (clé `lastActiveTool`).
+
+| Onglet | Composant | Description |
+|---|---|---|
+| Éditeur XML | `XmlEditor.svelte` | Décode/encode token Base64 XML, ouvre la page de connexion |
+| XML Viewer | `XmlViewer.svelte` | Arbre interactif + formatage + recherche dans l'arbre |
+| Éditeur Markdown | `MarkdownEditor.svelte` | Rendu HTML live via `marked` |
+| JSON Viewer | `JsonViewer.svelte` | Arbre interactif + formatage + recherche dans l'arbre |
+| Base64 | `Base64Tool.svelte` | Encode/décode avec détection auto UTF-8 / Latin-1 |
+
+## Arbre interactif (XML et JSON)
+
+Les composants `XmlTreeNode` et `JsonTreeNode` sont récursifs (`<svelte:self>`).
+
+**Règle critique — réactivité Svelte 4 :** les fonctions appelées dans les templates ne tracent que les variables passées en argument explicite. Pour que `{@html hl(text, searchQuery)}` se rende à jour à chaque frappe, `searchQuery` **doit** être passé en paramètre :
+
+```typescript
+// ✅ Svelte trace searchQuery comme dépendance
+function hl(text: string, query: string): string { ... }
+// template : {@html hl(tagName, searchQuery)}
+
+// ❌ Svelte ne re-rend pas quand searchQuery change
+function hl(text: string): string { /* lit searchQuery via closure */ }
+// template : {@html hl(tagName)}
+```
+
+**Comportement recherche :**
+- `selfMatch` / `descendantMatch` : calculés en `$:` (réactifs)
+- `effectiveExpanded = searchQuery ? descendantMatch : isExpanded` — auto-expand si descendant matche
+- `dimmed = searchQuery && !selfMatch && !descendantMatch` — opacity-30 si hors résultats
+
 ## TypeScript — règles Svelte 4
 
 Le compilateur Svelte 4 parse les templates HTML **avant** TypeScript. Deux contraintes importantes :
 
-1. **Pas de `as Type` dans les templates** — cause des erreurs de parsing Svelte (ex: `(e.target as HTMLSelectElement).value` dans `on:change`). Extraire la logique dans une fonction typée dans `<script lang="ts">`.
+1. **Pas de `as Type` dans les templates** — cause des erreurs de parsing Svelte. Extraire la logique dans une fonction typée dans `<script lang="ts">`.
 
-2. **Pas de types objets inline dans les templates** — `(obj as { type?: string })?.type` provoque une confusion du parser sur les accolades. Même règle : extraire en helper.
+2. **Pas de types objets inline dans les templates** — extraire en helper.
 
 ```typescript
 // ❌ cassé dans le template
@@ -129,3 +191,4 @@ it('load depuis storage', async () => {
 - **Phase A — TypeScript** : ✅ terminée
 - **Phase B — Vitest** : ✅ terminée (66 tests)
 - **Phase C — Nommage** : ✅ terminée (`loading` → `isLoading`, endpoint IDs → randomUUID, ESLint configuré)
+- **Phase D — Tools** : ✅ terminée (XML Viewer, JSON Viewer, Markdown, Base64, regroupement Tools)

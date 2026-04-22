@@ -113,6 +113,9 @@ export interface SearchResult {
   hcub?: {
     id?: string
   }
+  consultation?: {
+    libelle?: string
+  }
   addedAt?: string
   [key: string]: unknown
 }

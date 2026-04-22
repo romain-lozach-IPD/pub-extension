@@ -277,6 +277,12 @@
 
             <div class="flex items-center justify-between gap-3">
               <div class="text-sm min-w-0 flex-1">
+                {#if result.consultation?.libelle}
+                  <span class="text-gray-500">Consultation:</span>
+                  <span class="font-medium text-gray-800 truncate block" title={result.consultation.libelle}>
+                    {result.consultation.libelle}
+                  </span>
+                {/if}
                 <span class="text-gray-500">Login:</span>
                 <span
                   class="font-medium text-gray-800 truncate block"
@@ -393,6 +399,12 @@
 
             <div class="flex items-center justify-between gap-3">
               <div class="text-sm min-w-0 flex-1">
+                {#if favorite.consultation?.libelle}
+                  <span class="text-gray-500">Consultation:</span>
+                  <span class="font-medium text-gray-800 truncate block" title={favorite.consultation.libelle}>
+                    {favorite.consultation.libelle}
+                  </span>
+                {/if}
                 <span class="text-gray-500">Login:</span>
                 <span
                   class="font-medium text-gray-800 truncate block"

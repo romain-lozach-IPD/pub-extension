@@ -12,7 +12,7 @@
 
   const STORAGE_KEY = 'lastActiveTool'
   const tools: { id: ToolId; label: string }[] = [
-    { id: 'xml', label: 'Éditeur XML' },
+    { id: 'xml', label: 'Connexion' },
     { id: 'xmlviewer', label: 'XML Viewer' },
     { id: 'markdown', label: 'Éditeur Markdown' },
     { id: 'json', label: 'JSON Viewer' },

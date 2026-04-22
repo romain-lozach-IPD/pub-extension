@@ -29,7 +29,7 @@ pub/
 │   │   ├── Layout.svelte         # Sidebar nav + header + slot contenu
 │   │   ├── Home.svelte           # Recherche de comptes (filtres + résultats + favoris)
 │   │   ├── Tools.svelte          # Page Tools : onglets internes, dernier outil mémorisé
-│   │   ├── XmlEditor.svelte      # Éditeur XML token (Base64)
+│   │   ├── XmlEditor.svelte      # Connexion XML token (Base64)
 │   │   ├── XmlViewer.svelte      # Visualiseur XML (arbre + formaté + recherche)
 │   │   ├── XmlTreeNode.svelte    # Nœud récursif pour XmlViewer
 │   │   ├── JsonViewer.svelte     # Visualiseur JSON (arbre + formaté + recherche)
@@ -76,7 +76,7 @@ Pages disponibles : `home` | `tools` | `links` | `tasks` | `apidoc` | `settings`
 
 | Onglet | Composant | Description |
 |---|---|---|
-| Éditeur XML | `XmlEditor.svelte` | Décode/encode token Base64 XML, ouvre la page de connexion |
+| Connexion XML | `XmlEditor.svelte` | Décode/encode token Base64 XML, ouvre la page de connexion |
 | XML Viewer | `XmlViewer.svelte` | Arbre interactif + formatage + recherche dans l'arbre |
 | Éditeur Markdown | `MarkdownEditor.svelte` | Rendu HTML live via `marked` |
 | JSON Viewer | `JsonViewer.svelte` | Arbre interactif + formatage + recherche dans l'arbre |

@@ -161,9 +161,9 @@
   }
 </script>
 
-<div class="space-y-4 max-w-2xl bg-[#f5f5f5] min-h-screen p-4">
+<div class="space-y-4 bg-[#f5f5f5] p-4">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">Éditeur XML</h1>
+    <h1 class="text-2xl font-bold text-gray-800">Connexion</h1>
   </div>
 
   <!-- XML Décode avec coloration syntaxique -->

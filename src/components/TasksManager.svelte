@@ -3,7 +3,9 @@
   import { confirm } from '../stores/dialog.ts'
   import { onMount } from 'svelte'
   import { CheckSquare, Plus, Pencil, Trash2, GripVertical, X, List, Circle, Clock, CheckCircle, XCircle, MessageSquare } from 'lucide-svelte'
+  import { marked } from 'marked'
   import TaskComments from './TaskComments.svelte'
+  import RichTextEditor from './RichTextEditor.svelte'
   import type { Task, TaskStatus, TaskPriority } from '../types.ts'
   import type { SvelteComponent } from 'svelte'
 
@@ -15,10 +17,14 @@
     priority: 'medium'
   }
 
+  function parseMarkdown(md: string): string {
+    return marked.parse(md) as string
+  }
+
   let draggedId: string | null = null
   let dragOverId: string | null = null
 
-  let filterStatus = 'all'
+  let filterStatus = 'active'
 
   let showCommentsModal = false
   let selectedTaskId: string | null = null
@@ -75,18 +81,18 @@
   }
 
   function saveTask() {
-    if (!formData.title.trim() || !formData.description.trim()) return
+    if (!formData.title.trim()) return
 
     if (editingId) {
       tasks.update(editingId, {
         title: formData.title.trim(),
-        description: formData.description.trim(),
+        description: formData.description,
         priority: formData.priority
       })
     } else {
       tasks.add({
         title: formData.title.trim(),
-        description: formData.description.trim(),
+        description: formData.description,
         priority: formData.priority
       })
     }
@@ -287,7 +293,7 @@
   void getStatusIcon
 </script>
 
-<div class="space-y-4 max-w-2xl bg-[#f5f5f5] min-h-screen p-4">
+<div class="space-y-4 bg-[#f5f5f5] p-4">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-800">Tâches</h1>
     <button
@@ -318,14 +324,15 @@
           />
         </div>
         <div>
-          <label for="task-description" class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-          <textarea
-            id="task-description"
-            bind:value={formData.description}
-            placeholder="Description de la tâche *"
-            rows="3"
-            class="w-full p-2 border border-gray-300 rounded focus:border-[#1e3a5f] focus:outline-none resize-none"
-          ></textarea>
+          <!-- svelte-ignore a11y-label-has-associated-control -->
+          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          {#key editingId}
+            <RichTextEditor
+              value={formData.description}
+              placeholder="Description de la tâche…"
+              on:change={(e) => (formData.description = e.detail)}
+            />
+          {/key}
         </div>
         <div>
           <label for="task-priority" class="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
@@ -341,7 +348,7 @@
         </div>
         <button
           on:click={saveTask}
-          disabled={!formData.title.trim() || !formData.description.trim()}
+          disabled={!formData.title.trim()}
           class="w-full bg-[#1e3a5f] hover:bg-[#2a4a73] disabled:bg-gray-300 text-white py-2 rounded font-medium transition-colors"
         >
           {editingId ? 'Modifier' : 'Créer la tâche'}
@@ -499,27 +506,29 @@
               <h3 class="text-base font-semibold text-gray-800 {task.status === 'done' ? 'line-through text-gray-400' : ''}">
                 {task.title}
               </h3>
-              <div class="text-sm text-gray-600 mt-1 {task.status === 'done' ? 'line-through text-gray-400' : ''}">
-                {#if expandedDescriptions[task.id] || task.description.length <= 150}
-                  <p class="whitespace-pre-wrap">{task.description}</p>
-                  {#if expandedDescriptions[task.id] && task.description.length > 150}
+              {#if task.description}
+                <div class="text-sm mt-1 {task.status === 'done' ? 'opacity-50' : ''}">
+                  {#if expandedDescriptions[task.id] || task.description.length <= 150}
+                    <div class="md-content">{@html parseMarkdown(task.description)}</div>
+                    {#if expandedDescriptions[task.id] && task.description.length > 150}
+                      <button
+                        on:click={() => toggleExpandDescription(task.id)}
+                        class="text-xs text-[#1e3a5f] hover:text-[#2a4a73] mt-1"
+                      >
+                        Réduire...
+                      </button>
+                    {/if}
+                  {:else}
+                    <div class="md-content line-clamp-3">{@html parseMarkdown(task.description)}</div>
                     <button
                       on:click={() => toggleExpandDescription(task.id)}
                       class="text-xs text-[#1e3a5f] hover:text-[#2a4a73] mt-1"
                     >
-                      Réduire...
+                      Afficher tout...
                     </button>
                   {/if}
-                {:else}
-                  <p class="line-clamp-3 whitespace-pre-wrap">{task.description}</p>
-                  <button
-                    on:click={() => toggleExpandDescription(task.id)}
-                    class="text-xs text-[#1e3a5f] hover:text-[#2a4a73] mt-1"
-                  >
-                    Afficher tout...
-                  </button>
-                {/if}
-              </div>
+                </div>
+              {/if}
               <p class="text-xs text-gray-400 mt-2">
                 Créée le {new Date(task.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
@@ -534,3 +543,21 @@
 {#if showCommentsModal && selectedTask}
   <TaskComments task={selectedTask} on:close={closeCommentsModal} />
 {/if}
+
+<style>
+  :global(.md-content h1) { font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0 0.25rem; }
+  :global(.md-content h2) { font-size: 1.1rem; font-weight: 700; margin: 0.5rem 0 0.25rem; }
+  :global(.md-content h3) { font-size: 1rem; font-weight: 600; margin: 0.375rem 0 0.25rem; }
+  :global(.md-content p) { margin: 0.25rem 0; line-height: 1.5; }
+  :global(.md-content ul) { list-style: disc; padding-left: 1.25rem; margin: 0.25rem 0; }
+  :global(.md-content ol) { list-style: decimal; padding-left: 1.25rem; margin: 0.25rem 0; }
+  :global(.md-content li) { margin: 0.1rem 0; line-height: 1.5; }
+  :global(.md-content code) { background: #f3f4f6; padding: 0.1rem 0.3rem; border-radius: 3px; font-family: monospace; font-size: 0.85em; color: #1e3a5f; }
+  :global(.md-content pre) { background: #f3f4f6; padding: 0.5rem 0.75rem; border-radius: 4px; overflow-x: auto; margin: 0.25rem 0; }
+  :global(.md-content pre code) { background: none; padding: 0; font-size: 0.8rem; color: inherit; }
+  :global(.md-content blockquote) { border-left: 3px solid #1e3a5f; padding-left: 0.6rem; margin: 0.25rem 0; color: #6b7280; font-style: italic; }
+  :global(.md-content a) { color: #1e3a5f; text-decoration: underline; }
+  :global(.md-content strong) { font-weight: 700; }
+  :global(.md-content em) { font-style: italic; }
+  :global(.md-content hr) { border: none; border-top: 1px solid #e5e7eb; margin: 0.5rem 0; }
+</style>

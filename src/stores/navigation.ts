@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store'
-import { Home, FileText, Link, CheckSquare, Settings, BookOpen } from 'lucide-svelte'
+import { Home, Link, CheckSquare, Settings, BookOpen, Wrench } from 'lucide-svelte'
 import type { Page } from '../types.ts'
 
 export const currentPage = writable<string>('home')
@@ -7,7 +7,7 @@ export const editorData = writable<{ xmlToken: string; decodedXml: string }>({ x
 
 export const pages: Page[] = [
   { id: 'home', label: 'Accueil', icon: Home },
-  { id: 'xml', label: 'XML', icon: FileText },
+  { id: 'tools', label: 'Tools', icon: Wrench },
   { id: 'links', label: 'Liens', icon: Link },
   { id: 'tasks', label: 'Tâches', icon: CheckSquare },
   { id: 'apidoc', label: 'API Doc', icon: BookOpen },
@@ -23,5 +23,5 @@ export function openEditorWithData(xmlToken: string): void {
   }
 
   editorData.set({ xmlToken, decodedXml })
-  currentPage.set('xml')
+  currentPage.set('tools')
 }

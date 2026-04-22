@@ -2,7 +2,7 @@
   import { currentPage } from './stores/navigation.ts'
   import Layout from './components/Layout.svelte'
   import Home from './components/Home.svelte'
-  import XmlEditor from './components/XmlEditor.svelte'
+  import Tools from './components/Tools.svelte'
   import LinksManager from './components/LinksManager.svelte'
   import TasksManager from './components/TasksManager.svelte'
   import ApiDoc from './components/ApiDoc.svelte'
@@ -12,8 +12,8 @@
 <Layout>
   {#if $currentPage === 'home'}
     <Home />
-  {:else if $currentPage === 'xml'}
-    <XmlEditor />
+  {:else if $currentPage === 'tools'}
+    <Tools />
   {:else if $currentPage === 'links'}
     <LinksManager />
   {:else if $currentPage === 'tasks'}
